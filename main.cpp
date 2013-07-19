@@ -45,22 +45,25 @@ int main(int argc, char** argv)
     cout << "testcoord.toString: " << testcoord.toString() << "\n";
 
     cout << "-------------------\n";
-//    MapPoint parent;
-//    for(int row = 0; row <=MAX_SIZE; row+=(MAX_SIZE/64)){
-//        for(int col = 0; col <=MAX_SIZE; col+=(MAX_SIZE/64)){
-//            testcoord.x = col; testcoord.y = row;
-//            testcoord.calculateZ(&mapData);
-//            cout << row << "," << col << "\t\t" << testcoord.z << "\n";
-//        }
-//    }
+    //MapPoint parent;
+    //for(int row = MAX_SIZE/64; row < MAX_SIZE; row+=(MAX_SIZE/64)){
+    //    for(int col = MAX_SIZE/64; col < MAX_SIZE; col+=(MAX_SIZE/64)){
+    //        testcoord.x = col; testcoord.y = row;
+    //        testcoord.calculateZ(&mapData);
+    //        cout << "\n";
+    //        cout << row << "," << col << "\t\t" << testcoord.z << "\n";
+    //    }
+    //}
 
     thread canvas(Init,800,0,800,800,argc,argv);
     thread t(task1, "World");
 
     Viewport testViewport(0, 0, 400, 200);
     Viewport testViewport2(400, 0, 400, 600);
-    Viewport testViewport3(250, 250, 100, 100);
-    Map testMap(0, 200, 200, 200);
+    Viewport testViewport3(250, 50, 100, 100);
+    Map testMap(0, 200, 600, 600);
+    //testMap.SetView(0,0,0.5,0);
+
     testMap.Draw();
     testViewport.SetView(0.5, 0, 1, 45); 
     testViewport3.SetView(0.5, 0, 0.5, 45);

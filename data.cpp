@@ -122,12 +122,12 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 
     if ( got != mapData->end() ){
         // already have the data in buffer.
-        x = got->second.x;
+        z = got->second.z;
         recursion = got->second.recursion;
         //cout << "MapPoint::calculateZ r-\n";
         return;
     }
-
+    
     MapPoint parent;
     bool squareOrDiamond = getParent(&parent);
     int pixSize;
@@ -160,6 +160,7 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 
         z = (tl.z + tr.z + bl.z + br.z) / 4;
         z += jitter(pixSize, GAME_NUMBER, 1, x, y);
+        //z = (x + y)/2;
 
     } else {
         // center of diamond.
@@ -185,6 +186,7 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 
         z = (t.z + l.z + r.z + b.z) / 4;
         z += jitter(pixSize, GAME_NUMBER, 1, x, y);
+        //z = (x + y)/2;
 
     }
     std::pair<std::string, MapPoint> entry(key, *this);

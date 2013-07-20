@@ -11,7 +11,7 @@
 #define SEED_MAP_HEIGHT OFF_MAP_HEIGHT
 #define GAME_NUMBER 123456
 #define SEED .1
-
+#define LANDMASS .2
 
 /* http://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
  *
@@ -58,6 +58,20 @@ struct MapPoint : public Coordinate{
     /*
     */
     void calculateZ(std::unordered_map<std::string, MapPoint>* mapData);
+};
+
+class Data{
+    private:
+        unsigned int height_z_max;
+        unsigned int height_z_min;
+        unsigned int waterlevel;
+    public:
+        Data(void);
+        static std::unordered_map<std::string, MapPoint> mapData;
+        static std::unordered_map<std::string, MapPoint>* p_mapData;
+        unsigned int Height_z_min(void){return height_z_min;};
+        unsigned int Height_z_max(void){return height_z_max;};
+        unsigned int Waterlevel(void){return waterlevel;};
 };
 
 

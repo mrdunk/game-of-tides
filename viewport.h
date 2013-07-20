@@ -61,8 +61,6 @@ class Viewport : Signal{
         virtual void Draw(void);
 };
 
-#define GL_BUFFERSIZE 2
-static GLuint BufferName[GL_BUFFERSIZE];
 enum
 {
     POSITION_OBJECT = 0,

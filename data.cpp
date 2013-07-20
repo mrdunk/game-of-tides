@@ -6,6 +6,8 @@
 
 using namespace std;
 
+//std::unordered_map<std::string, MapPoint> mapData;
+
 std::string Coordinate::toString(){
     std::stringstream ss;
     ss << x << "," << y;
@@ -111,7 +113,7 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
         //cout << "MapPoint::calculateZ r\n";
         return;
     }
-    if(x < 0 or y < 0 or x >= MAX_SIZE or y >= MAX_SIZE){
+    if(x < 0 or y < 0 or x >= (unsigned)MAX_SIZE or y >= (unsigned)MAX_SIZE){
         z = OFF_MAP_HEIGHT;
         //cout << "MapPoint::calculateZ r2\n";
         return;
@@ -160,7 +162,6 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 
         z = (tl.z + tr.z + bl.z + br.z) / 4;
         z += jitter(pixSize, GAME_NUMBER, 1, x, y);
-        //z = (x + y)/2;
 
     } else {
         // center of diamond.
@@ -186,7 +187,6 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 
         z = (t.z + l.z + r.z + b.z) / 4;
         z += jitter(pixSize, GAME_NUMBER, 1, x, y);
-        //z = (x + y)/2;
 
     }
     std::pair<std::string, MapPoint> entry(key, *this);
@@ -216,4 +216,50 @@ inline short int jitter(unsigned int size, int salt, int use, unsigned int x,  u
     hash *= PRIME;
     int out = (hash % size) - (size / 2);
     return out;
+}
+
+std::unordered_map<std::string, MapPoint> Data::mapData;
+std::unordered_map<std::string, MapPoint>* Data::p_mapData;
+
+Data::Data(void){
+    p_mapData = &mapData;
+    MapPoint testcoord;
+    height_z_max = 0;
+    height_z_min = MAX_SIZE;
+
+    for(int row = MAX_SIZE/128; row < MAX_SIZE; row+=(MAX_SIZE/128)){
+        for(int col = MAX_SIZE/128; col < MAX_SIZE; col+=(MAX_SIZE/128)){
+            testcoord.x = col;
+            testcoord.y = row;
+            testcoord.calculateZ(p_mapData);
+            if(height_z_max < testcoord.z)
+                height_z_max = testcoord.z;
+            if(height_z_min > testcoord.z)
+                height_z_min = testcoord.z;
+        }
+    }
+
+    waterlevel = height_z_max - ((height_z_max - height_z_min) * LANDMASS);
+    float landmass = 0;
+    while((int)(LANDMASS * 10) != (int)(landmass * 10)){
+        cout << "waterleveldd: " << waterlevel << "\tlandmass: " << landmass << "\n";
+        int drycount = 0;
+        int totalcount = 0;
+        for(int row = MAX_SIZE/128; row < MAX_SIZE; row+=(MAX_SIZE/128)){
+            for(int col = MAX_SIZE/128; col < MAX_SIZE; col+=(MAX_SIZE/128)){
+                testcoord.x = col;
+                testcoord.y = row;
+                testcoord.calculateZ(p_mapData);
+                if(testcoord.z > waterlevel)
+                    ++drycount;
+                ++totalcount;
+            }
+        }
+
+        landmass = (float)drycount / totalcount;
+        if(landmass > LANDMASS)
+            waterlevel += 2000;
+        else
+            waterlevel -= 2000;
+    }
 }

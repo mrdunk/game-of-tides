@@ -14,6 +14,9 @@
 
 using namespace std;
 
+#define GL_BUFFERSIZE 2
+static GLuint BufferName[GL_BUFFERSIZE];
+
 Window windows[MAX_WINDOWS];
 
 /* Instance of Sihnal handler for the non C++ openGL code to use. */

@@ -38,7 +38,7 @@ struct Coordinate{
     bool getParent(Coordinate* parent_coord);
     bool getParent(unsigned int* previousX, unsigned int* previousY);
 
-    /* limitRecursion(void) - Returns the highest recursion level Coordinate 
+    /* limitRecursion(void) - Returns the deepest recursion level Coordinate 
      * can exist at without rounding. */
     int limitRecursion(void);
 
@@ -53,7 +53,12 @@ struct Coordinate{
 
 struct MapPoint : public Coordinate{
     unsigned int z;
-    unsigned int recursion;
+    static unsigned int counter;
+    unsigned int last_accesed;
+    //static unsigned int _waterlevel;
+    //void Set_waterlevel(unsigned int waterlevel){
+    //    _waterlevel = waterlevel;
+    //}
 
     /*
     */
@@ -62,9 +67,9 @@ struct MapPoint : public Coordinate{
 
 class Data{
     private:
-        unsigned int height_z_max;
-        unsigned int height_z_min;
-        unsigned int waterlevel;
+        static unsigned int height_z_max;
+        static unsigned int height_z_min;
+        static unsigned int waterlevel;
     public:
         Data(void);
         static std::unordered_map<std::string, MapPoint> mapData;

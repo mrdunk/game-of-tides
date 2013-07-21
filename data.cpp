@@ -105,8 +105,26 @@ int Coordinate::limitRecursion(int recursionTarget, unsigned int* modifiedX, uns
     return recursion;
 }
 
+//unsigned int MapPoint::_waterlevel;
+unsigned int MapPoint::counter = 0;
+
 void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
     //cout << "MapPoint::calculateZ + " << x << "," << y << "\n";
+
+    std::string key = toString();
+    std::unordered_map<std::string, MapPoint>::const_iterator got = mapData->find (key);
+
+    if ( got != mapData->end() ){
+        // already have the data in buffer.
+        z = got->second.z;
+        
+        last_accesed = ++counter;
+        std::pair<std::string, MapPoint> entry(key, *this);
+        mapData->insert(entry);
+
+        return;
+    }
+   
     if(!x and !y){
         // 0,0 point.
         z = SEED_MAP_HEIGHT;
@@ -118,25 +136,16 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
         //cout << "MapPoint::calculateZ r2\n";
         return;
     }
-
-    std::string key = toString();
-    std::unordered_map<std::string, MapPoint>::const_iterator got = mapData->find (key);
-
-    if ( got != mapData->end() ){
-        // already have the data in buffer.
-        z = got->second.z;
-        recursion = got->second.recursion;
-        //cout << "MapPoint::calculateZ r-\n";
-        return;
-    }
-    
+ 
     MapPoint parent;
     bool squareOrDiamond = getParent(&parent);
+    
     int pixSize;
     if(x != parent.x)
         pixSize = abs((int)x - (int)parent.x);
     else
         pixSize = abs((int)y - (int)parent.y);
+
 
     if(squareOrDiamond){
         // center of square.
@@ -189,6 +198,8 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
         z += jitter(pixSize, GAME_NUMBER, 1, x, y);
 
     }
+
+    last_accesed = ++counter;
     std::pair<std::string, MapPoint> entry(key, *this);
     mapData->insert(entry);
 
@@ -220,46 +231,55 @@ inline short int jitter(unsigned int size, int salt, int use, unsigned int x,  u
 
 std::unordered_map<std::string, MapPoint> Data::mapData;
 std::unordered_map<std::string, MapPoint>* Data::p_mapData;
+unsigned int Data::waterlevel = 0;
+unsigned int Data::height_z_min;
+unsigned int Data::height_z_max;
 
 Data::Data(void){
     p_mapData = &mapData;
-    MapPoint testcoord;
-    height_z_max = 0;
-    height_z_min = MAX_SIZE;
 
-    for(int row = MAX_SIZE/128; row < MAX_SIZE; row+=(MAX_SIZE/128)){
-        for(int col = MAX_SIZE/128; col < MAX_SIZE; col+=(MAX_SIZE/128)){
-            testcoord.x = col;
-            testcoord.y = row;
-            testcoord.calculateZ(p_mapData);
-            if(height_z_max < testcoord.z)
-                height_z_max = testcoord.z;
-            if(height_z_min > testcoord.z)
-                height_z_min = testcoord.z;
-        }
-    }
+    if(!waterlevel){
+        MapPoint testcoord;
+        height_z_max = 0;
+        height_z_min = MAX_SIZE;
 
-    waterlevel = height_z_max - ((height_z_max - height_z_min) * LANDMASS);
-    float landmass = 0;
-    while((int)(LANDMASS * 10) != (int)(landmass * 10)){
-        cout << "waterleveldd: " << waterlevel << "\tlandmass: " << landmass << "\n";
-        int drycount = 0;
-        int totalcount = 0;
         for(int row = MAX_SIZE/128; row < MAX_SIZE; row+=(MAX_SIZE/128)){
             for(int col = MAX_SIZE/128; col < MAX_SIZE; col+=(MAX_SIZE/128)){
                 testcoord.x = col;
                 testcoord.y = row;
                 testcoord.calculateZ(p_mapData);
-                if(testcoord.z > waterlevel)
-                    ++drycount;
-                ++totalcount;
+                if(height_z_max < testcoord.z)
+                    height_z_max = testcoord.z;
+                if(height_z_min > testcoord.z)
+                    height_z_min = testcoord.z;
             }
         }
 
-        landmass = (float)drycount / totalcount;
-        if(landmass > LANDMASS)
-            waterlevel += 2000;
-        else
-            waterlevel -= 2000;
+        waterlevel = height_z_max - ((height_z_max - height_z_min) * LANDMASS);
+        float landmass = 0;
+        int INIT_RES = 128;
+        while((int)(LANDMASS * 10) != (int)(landmass * 10)){
+            cout << "waterleveldd: " << waterlevel << "\tlandmass: " << landmass << "\n";
+            int drycount = 0;
+            int totalcount = 0;
+            for(int row = MAX_SIZE/INIT_RES; row < MAX_SIZE; row+=(MAX_SIZE/INIT_RES)){
+                for(int col = MAX_SIZE/INIT_RES; col < MAX_SIZE; col+=(MAX_SIZE/INIT_RES)){
+                    testcoord.x = col;
+                    testcoord.y = row;
+                    testcoord.calculateZ(p_mapData);
+                    if(testcoord.z > waterlevel)
+                        ++drycount;
+                    ++totalcount;
+                }
+            }
+
+            landmass = (float)drycount / totalcount;
+            if(landmass > LANDMASS)
+                waterlevel += 2000;
+            else
+                waterlevel -= 2000;
+        }
     }
+    cout << "Data::Data height_z_max: " << height_z_max << "\theight_z_min: " << height_z_min << "\twaterlevel: " << waterlevel << "\n";
+    //testcoord.Set_waterlevel(waterlevel);
 }

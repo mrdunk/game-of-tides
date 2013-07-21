@@ -2,23 +2,24 @@
 
 #include "map.h"
 #include "data.h"
+#include "time_code.c"
 
 using namespace std;
 
 void Map::Draw(void){
     while(!windows[_window_index].window);  // wait until window is initialised.
     cout << flush << "Map::Draw " << _window_index << " " << _width << "," << _height << "\n" << flush;
+    timestamp_t t0 = get_timestamp();
+
     int step_x = MAX_SIZE / (int)pow(2, (int)log2(_width));
     int step_y = MAX_SIZE / (int)pow(2, (int)log2(_height));
-    //float multiplier_x = _width / pow(2, (int)log2(_width));
-    //float multiplier_y = _height / pow(2, (int)log2(_height));
+    //step_x *= 2;
+    //step_y *= 2;
 
     _data_points.clear();
     _data_colour.clear();
 
-    //std::unordered_map<std::string, MapPoint> mapData;
     Data data;
-    //float z_multiplier = 255.0f / (data.Height_z_max() - data.Height_z_min());
     float z_multiplier_wet = 255.0f / (data.Waterlevel() - data.Height_z_min());
     float z_multiplier_dry = 255.0f / (data.Height_z_max() - data.Waterlevel());
     cout << data.Height_z_min() << " " << data.Height_z_max() << " " << z_multiplier_wet << " * \n";
@@ -26,6 +27,7 @@ void Map::Draw(void){
     MapPoint tl, tr, bl, br;
     for(int row = step_y; row < MAX_SIZE; row+=step_y){
         for(int col = step_x; col < MAX_SIZE; col+=step_x){
+            //cout << col << "," << row << "\n" << flush;
             tl.x = col;
             tl.y = row;
             tl.calculateZ(data.p_mapData);
@@ -40,8 +42,6 @@ void Map::Draw(void){
             br.calculateZ(data.p_mapData);
 
             if(tl.x and tl.y and bl.x and bl.y and tr.x and tr.y and br.x and br.y and tl.z and bl.z and tr.z and br.z){
-                //cout << (float)(tl.z - data.Height_z_min()) * z_multiplier << "\n";
-
                 _data_points.push_back ((float)tl.x / MAX_SIZE);
                 _data_points.push_back ((float)tl.y / MAX_SIZE);
                 _data_points.push_back ((float)bl.x / MAX_SIZE);
@@ -108,8 +108,11 @@ void Map::Draw(void){
             }
         }
     }
+
+    timestamp_t t1 = get_timestamp();
+    cout << "Map::Draw took " << (double)(t1 - t0) / 1000000.0L << " seconds.\n";
 }
 
-//GLubyte R(unsigned int z){
-    
-//}
+void Map::SetView(float view_x, float view_y, float zoom, int rotation){
+    cout << "Map::SetView\n";
+}

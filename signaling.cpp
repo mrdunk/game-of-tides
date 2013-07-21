@@ -1,13 +1,16 @@
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 
 #include "signaling.h"
+#include "viewport.h"
 
 using namespace std;
 
 /* Need to re-define as a hint to the linker.
  * http://stackoverflow.com/questions/272900/undefined-reference-to-static-class-member
  */
+std::unordered_map<unsigned int, Viewport*> Signal::_registered_endpoints;
 std::vector<signal> Signal::_sig_buf_A;
 std::vector<signal> Signal::_sig_buf_B;
 std::vector<signal>* Signal::_p_active_sig_buf;
@@ -61,4 +64,22 @@ bool Signal::PopEvent(signal* sig){
         }
     }
     return (bool)sig->sequence;
+}
+
+void Signal::RegisterEndpoint(unsigned int label, Viewport* p_class){
+    std::pair<unsigned int, Viewport*> entry(label, p_class);
+    _registered_endpoints.insert(entry);
+}
+
+void Signal::ServiceSignals(void){
+    signal sig;
+    while(PopEvent(&sig)){
+        //cout << "Signal::ServiceSignals " << "\tsig.source: " << sig.source << "\tsig.dest: " << sig.dest << 
+        //"\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
+        for ( auto it = _registered_endpoints.begin(); it != _registered_endpoints.end(); ++it ){
+            if(it->first == sig.dest){
+                (it->second)->ActOnSignal(sig);
+            }
+        }
+    }
 }

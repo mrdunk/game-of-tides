@@ -7,7 +7,7 @@
 #include "signaling.h"
 
 #define MAX_WINDOWS 10
-#define FRAME_LENGTH 50 // ms
+#define FRAME_LENGTH 100 // ms
 #define BORDERWIDTH 2
 
 struct Window{
@@ -39,10 +39,10 @@ void displayBorder(void);
 void click(int button, int state, int x, int y);
 void timer(int value);
 void keyboard(unsigned char key, int x, int y);
-void refresh(void);
+void keyboardSecial(int key, int x, int y);
 void refreshChildWindows(void);
 
-class Viewport : Signal{
+class Viewport : public Signal{
     protected:
         int _window_index;
         int _pos_x;
@@ -53,12 +53,14 @@ class Viewport : Signal{
         float _view_y;
         float _zoom;
         int _rotation;
+        unsigned int _label;
     public:
         std::vector<GLfloat> _data_points;
         std::vector<GLubyte> _data_colour;
-        Viewport(int pos_x, int pos_y, int width, int height);
+        Viewport(unsigned int label, int pos_x, int pos_y, int width, int height);
         void SetView(float view_x, float view_y, float zoom, int rotation);
         virtual void Draw(void);
+        virtual void ActOnSignal(signal sig);
 };
 
 enum

@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "viewport.h"
-#include "signaling.h"
+//#include "signaling.h"
 
 using namespace std;
 
@@ -73,6 +73,7 @@ bool Init(int pos_x, int pos_y, int width, int height, int argc, char** argv){
     glutMouseFunc(click);
     glutTimerFunc(FRAME_LENGTH, timer, 1);
     glutKeyboardFunc(keyboard);
+    glutSpecialFunc(keyboardSecial);
     _init();
 
     windows[0].initialised = 1;
@@ -212,6 +213,47 @@ void keyboard(unsigned char key, int x, int y){
     cout << "keyboard " << (int)key << " " << x << "," << y << "\n";
     //if(key == ' ')
     //    timer(0);
+    if(key == '='){
+        signal keypress;
+        keypress.type = SIG_TYPE_KEYBOARD;
+        keypress.source = 1;
+        keypress.dest = SIG_DEST_MAP;
+        keypress.val = SIG_VAL_ZOOM_IN;
+        Signal_instance.PushEvent(keypress);
+    }
+    if(key == '-'){
+        signal keypress;
+        keypress.type = SIG_TYPE_KEYBOARD;
+        keypress.source = 1;
+        keypress.dest = SIG_DEST_MAP;
+        keypress.val = SIG_VAL_ZOOM_OUT;
+        Signal_instance.PushEvent(keypress);
+    }
+}
+
+void keyboardSecial(int key, int x, int y){
+    signal keypress;
+    keypress.type = SIG_TYPE_KEYBOARD;
+    keypress.source = 1;
+    keypress.dest = SIG_DEST_MAP;
+    keypress.val = 0;
+    
+    switch(key) {
+        case GLUT_KEY_LEFT :
+            keypress.val = SIG_VAL_LEFT;
+            break;
+        case GLUT_KEY_RIGHT :
+            keypress.val = SIG_VAL_RIGHT;
+            break;
+        case GLUT_KEY_UP :
+            keypress.val = SIG_VAL_UP;
+            break;
+        case GLUT_KEY_DOWN :
+            keypress.val = SIG_VAL_DOWN;
+            break;
+    }
+    Signal_instance.PushEvent(keypress);    
+
 }
 
 void refreshChildWindows(void){
@@ -226,6 +268,8 @@ void refreshChildWindows(void){
                 windows[i].window = glutCreateSubWindow(windows[0].window, windows[i].pos_x + BORDERWIDTH, windows[i].pos_y + BORDERWIDTH, 
                                                         windows[i].width, windows[i].height);
                 glutMouseFunc(click);
+                glutKeyboardFunc(keyboard);
+                glutSpecialFunc(keyboardSecial);
                 glutDisplayFunc(Display);
                 windows[i].initialised = 1;
         }
@@ -243,22 +287,10 @@ void refreshChildWindows(void){
     }
 }
 
-/*void refresh(void){
-    //cout<<"refresh";
-    int i = 0;
-    while(i < MAX_WINDOWS){
-        if(windows[i].window and windows[i].initialised){
-            //cout << " " << i << "," << windows[i].window << flush;
-            glutSetWindow(windows[i].window);
-            glutPostRedisplay();
-        } 
-        ++i;
-    }
-    //cout << "\n";
-}*/
-
-Viewport::Viewport(int pos_x, int pos_y, int width, int height){
+Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int height){
     cout << "Viewport::Viewport\n" << flush;
+    _label = label;
+    RegisterEndpoint(_label, this);
     int i = 0;
     /* Wait for Parent Window to be initialised. */
     while(!windows[0].initialised or !windows[0].window);
@@ -278,6 +310,10 @@ Viewport::Viewport(int pos_x, int pos_y, int width, int height){
             _pos_y = pos_y;
             _width = width;
             _height = height;
+            _view_x = 0;
+            _view_y = 0;
+            _zoom = 1;
+            _rotation = 0;
 
             Draw();
             break;
@@ -368,4 +404,32 @@ void Viewport::Draw(void){
     _data_colour.push_back (0);
     _data_colour.push_back (0);
 
+}
+
+void Viewport::ActOnSignal(signal sig){
+    //cout << "Viewport::ActOnSignal " << "\tsig.source: " << sig.source << "\tsig.dest: " << 
+    //sig.dest << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
+    if(sig.type == SIG_TYPE_KEYBOARD){
+        switch(sig.val){
+            case SIG_VAL_ZOOM_IN:
+                _zoom *= 1.5;
+                break;
+            case SIG_VAL_ZOOM_OUT:
+                _zoom /= 1.5;
+                break;
+            case SIG_VAL_UP:
+                _view_y -= 0.05 / _zoom;
+                break;
+            case SIG_VAL_DOWN:
+                _view_y += 0.05 / _zoom;
+                break;
+            case SIG_VAL_LEFT:
+                _view_x += 0.05 / _zoom;
+                break;
+            case SIG_VAL_RIGHT:
+                _view_x -= 0.05 / _zoom;
+                break;
+        }
+        SetView(_view_x, _view_y, _zoom, _rotation);
+    }
 }

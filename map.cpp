@@ -6,27 +6,51 @@
 
 using namespace std;
 
+Data Map::data;
+
 void Map::Draw(void){
     while(!windows[_window_index].window);  // wait until window is initialised.
     cout << flush << "Map::Draw " << _window_index << " " << _width << "," << _height << "\n" << flush;
     timestamp_t t0 = get_timestamp();
 
-    int step_x = MAX_SIZE / (int)pow(2, (int)log2(_width));
-    int step_y = MAX_SIZE / (int)pow(2, (int)log2(_height));
+    Clear();
+
+    //const unsigned int min_x = ((0.5f - _view_x) * MAX_SIZE) - (MAX_SIZE / (2 * _zoom));
+    //const unsigned int max_x = ((0.5f - _view_x) * MAX_SIZE) + (MAX_SIZE / (2 * _zoom));
+    //const unsigned int min_y = ((0.5f - _view_y) * MAX_SIZE) - (MAX_SIZE / (2 * _zoom));
+    //const unsigned int max_y = ((0.5f - _view_y) * MAX_SIZE) + (MAX_SIZE / (2 * _zoom));
+
+    DrawSection(0.0f, 0.0f, 1.0f, 1.0f);
+
+    timestamp_t t1 = get_timestamp();
+    cout << "Map::Draw took " << (double)(t1 - t0) / 1000000.0L << " seconds.\n";
+}
+
+void Map::DrawSection(float x0, float y0, float x1, float y1){
+
+    const unsigned int min_x = ((0.5f - _view_x) * MAX_SIZE) - (((0.5f - x0) / _zoom) * MAX_SIZE);
+    const unsigned int min_y = ((0.5f - _view_y) * MAX_SIZE) - (((0.5f - y0) / _zoom) * MAX_SIZE);
+    const unsigned int max_x = ((0.5f - _view_x) * MAX_SIZE) - (((0.5f - x1) / _zoom) * MAX_SIZE);
+    const unsigned int max_y = ((0.5f - _view_y) * MAX_SIZE) - (((0.5f - y1) / _zoom) * MAX_SIZE);
+
+    /* step size will always be a power of 2.
+     * This is important to ensure the display pixels coincide with the data structure recursion levels
+     * which means un-necesary recursion through the datastructure need not occur. */
+    int step_x = MAX_SIZE / (int)pow(2, (int)log2(_width * _zoom));
+    int step_y = MAX_SIZE / (int)pow(2, (int)log2(_height * _zoom));
     //step_x *= 2;
     //step_y *= 2;
 
-    _data_points.clear();
-    _data_colour.clear();
-
-    Data data;
     float z_multiplier_wet = 255.0f / (data.Waterlevel() - data.Height_z_min());
     float z_multiplier_dry = 255.0f / (data.Height_z_max() - data.Waterlevel());
-    cout << data.Height_z_min() << " " << data.Height_z_max() << " " << z_multiplier_wet << " * \n";
 
     MapPoint tl, tr, bl, br;
-    for(int row = step_y; row < MAX_SIZE; row+=step_y){
-        for(int col = step_x; col < MAX_SIZE; col+=step_x){
+
+    /* The (min_y % step_y) part ensures the display is alligned with the datastructure, preventing un-necesary recursion. */
+    cout << "min_x: " << min_x << "\tmax_x: " << max_x << "\tmin_y: " << min_y << "\tmax_y: " << max_y << "\n";
+    cout << "step_x: " << step_x << "\tstep_y: " << step_y << "\n";
+    for(unsigned int row = min_y - (min_y % step_y); row < max_y; row+=step_y){
+        for(unsigned int col = min_x - (min_x % step_x); col < max_x; col+=step_x){
             //cout << col << "," << row << "\n" << flush;
             tl.x = col;
             tl.y = row;
@@ -109,8 +133,6 @@ void Map::Draw(void){
         }
     }
 
-    timestamp_t t1 = get_timestamp();
-    cout << "Map::Draw took " << (double)(t1 - t0) / 1000000.0L << " seconds.\n";
 }
 
 void Map::SetView(float view_x, float view_y, float zoom, int rotation){

@@ -406,30 +406,49 @@ void Viewport::Draw(void){
 
 }
 
+void Viewport::Clear(void){
+    _data_points.clear();
+    _data_colour.clear();
+}
+
+void Viewport::DrawSection(float x0, float y0, float x1, float y1){
+    cout << "Viewport::DrawSection  ***\n";
+    Draw();
+}
+
 void Viewport::ActOnSignal(signal sig){
     //cout << "Viewport::ActOnSignal " << "\tsig.source: " << sig.source << "\tsig.dest: " << 
     //sig.dest << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
     if(sig.type == SIG_TYPE_KEYBOARD){
+        float x0 = 0.0f, x1 = 1.0f, y0 = 0.0f, y1 = 1.0f;
         switch(sig.val){
             case SIG_VAL_ZOOM_IN:
                 _zoom *= 1.5;
+                Clear();
                 break;
             case SIG_VAL_ZOOM_OUT:
                 _zoom /= 1.5;
+                Clear();
                 break;
             case SIG_VAL_UP:
-                _view_y -= 0.05 / _zoom;
+                _view_y -= 0.1 / _zoom;
+                y0 = 0.9f;
                 break;
             case SIG_VAL_DOWN:
-                _view_y += 0.05 / _zoom;
+                _view_y += 0.1 / _zoom;
+                y1 = 0.1f;
                 break;
             case SIG_VAL_LEFT:
-                _view_x += 0.05 / _zoom;
+                _view_x += 0.1 / _zoom;
+                x1 = 0.1f;
                 break;
             case SIG_VAL_RIGHT:
-                _view_x -= 0.05 / _zoom;
+                _view_x -= 0.1 / _zoom;
+                x0 = 0.9f;
                 break;
         }
         SetView(_view_x, _view_y, _zoom, _rotation);
+        //Draw();
+        DrawSection(x0, y0,  x1, y1);
     }
 }

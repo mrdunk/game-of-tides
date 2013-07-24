@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 
+#define    MAX_DEST_ADDRESSES 256
 
 #define    SIG_TYPE_KEYBOARD 1
 #define    SIG_TYPE_MOUSE_X 2
@@ -13,6 +14,7 @@
 #define    SIG_DEST_ALL 0
 #define    SIG_DEST_TEST 1
 #define    SIG_DEST_MAP 2
+//#define    SIG_DEST_LAST MAX_DEST_ADDRESSES
 
 #define    SIG_VAL_ZOOM_IN 1
 #define    SIG_VAL_ZOOM_OUT 2
@@ -41,6 +43,7 @@ private:
     static std::vector<signal>* _p_inactive_sig_buf;
     static unsigned int _write_counter;
     unsigned int _read_counter;
+    static bool _interupt[MAX_DEST_ADDRESSES];
 public:
     Signal(void);
     void SwapBuf(void);
@@ -59,6 +62,10 @@ public:
      *                  the object's .ActOnSignal(signal sig) method is called
      */
     void ServiceSignals(void);
+
+    /* TestInterupt - If a signal has been registered for an address, this returns true.
+    */
+    bool TestInterupt(unsigned int address);
 };
 
 

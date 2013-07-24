@@ -60,7 +60,6 @@ class Viewport : public Signal{
         Viewport(unsigned int label, int pos_x, int pos_y, int width, int height);
         void SetView(float view_x, float view_y, float zoom, int rotation);
         virtual void Draw(void);
-        virtual void DrawSection(float x0, float y0, float x1, float y1);
         virtual void ActOnSignal(signal sig);
         void Clear();
 };

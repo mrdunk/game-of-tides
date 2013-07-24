@@ -22,6 +22,7 @@ void task1(string msg)
         //while(Sig.PopEvent(&sig)){
         //    cout << " " << Sig._read_counter << "\tsig.source: " << sig.source << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
         //}
+        //cout << "." << flush;
         Sig.ServiceSignals(); 
     }
 }

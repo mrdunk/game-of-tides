@@ -3,6 +3,7 @@
 #include "map.h"
 #include "data.h"
 #include "time_code.c"
+#include <GL/glut.h>
 
 using namespace std;
 
@@ -184,10 +185,6 @@ inline GLubyte Map::WaterCol(float height){
     return (GLubyte)(255 - (float)(data.Waterlevel() - height) * z_multiplier_wet);
 }
 
-//void Map::SetView(float view_x, float view_y, float zoom, int rotation){
-//    cout << "Map::SetView\n";
-//}
-
 void Map::ScrubView(void){
     ScrubView(0.0f, 0.0f, 1.0f, 1.0f);
 }
@@ -314,6 +311,7 @@ void Map::ProcessTasks(void){
     while(_task_list.back().type == 0)
         _task_list.pop_back();
 
+    //renderBitmapString(0.5, 0.5, GLUT_BITMAP_TIMES_ROMAN_10, "Hello World!");
     cout << _data_points.size() << "\n";
 }
 

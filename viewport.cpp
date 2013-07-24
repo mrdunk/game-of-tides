@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "viewport.h"
-//#include "signaling.h"
+#include "data.h"
 
 using namespace std;
 
@@ -185,6 +185,18 @@ void Display(void){
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
 
+    float linespace = 2.0f * 15 / windows[window_index].height;
+    glPushMatrix();
+    glLoadIdentity();       // load default matrix
+    char Result[64]; 
+    sprintf ( Result, "Triangles: %d", TriangleCount );
+    renderBitmapString(-0.95, -0.95, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+    
+    int pixSize = MAX_SIZE / (windows[window_index].width * windows[window_index].zoom * MIN_RECURSION);
+    sprintf ( Result, "PixelSize: %d m", pixSize );
+    renderBitmapString(-0.95, -0.95 + linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+    glPopMatrix();
+
     //glFlush ();
     glutSwapBuffers();
 }
@@ -284,6 +296,15 @@ void refreshChildWindows(void){
             glutPostRedisplay();
         }
         ++i;
+    }
+}
+
+void renderBitmapString(float x, float y, void *font, char *string) {
+
+    char *c;
+    glRasterPos2f(x, y);
+    for (c=string; *c != '\0'; c++) {
+        glutBitmapCharacter(font, *c);
     }
 }
 

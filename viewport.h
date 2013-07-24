@@ -41,6 +41,7 @@ void timer(int value);
 void keyboard(unsigned char key, int x, int y);
 void keyboardSecial(int key, int x, int y);
 void refreshChildWindows(void);
+void renderBitmapString(float x, float y, void *font, char *string);
 
 class Viewport : public Signal{
     protected:

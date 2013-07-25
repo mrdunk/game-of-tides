@@ -22,7 +22,7 @@ void Map::Draw(void){
     cout << "Map::Draw took " << (double)(t1 - t0) / 1000000.0L << " seconds.\n";
 }
 
-bool Map::DrawSection(Task* p_task){
+int Map::DrawSection(Task* p_task){
     float _zoom_holder = _zoom;
     float _view_x_holder = _view_x;
     float _view_y_holder = _view_y;
@@ -30,7 +30,7 @@ bool Map::DrawSection(Task* p_task){
     _view_x = p_task->view_x;
     _view_y = p_task->view_y;
 
-    bool retval = DrawSection(p_task->x0, p_task->y0, p_task->x1, p_task->y1, &(p_task->progress_x), &(p_task->progress_y));
+    int retval = DrawSection(p_task->x0, p_task->y0, p_task->x1, p_task->y1, &(p_task->progress_x), &(p_task->progress_y));
 
     _zoom = _zoom_holder;
     _view_x = _view_x_holder;
@@ -39,7 +39,7 @@ bool Map::DrawSection(Task* p_task){
     return retval;
 }
 
-bool Map::DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_progress_x, unsigned int* p_progress_y){
+int Map::DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_progress_x, unsigned int* p_progress_y){
 
     /* step size will always be a power of 2.
      * This is important to ensure the display pixels coincide with the data structure recursion levels
@@ -85,13 +85,14 @@ bool Map::DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_pr
             if(p_progress_x and p_progress_y and *p_progress_x > col and *p_progress_y > row){
                 continue;
             }
-            if(TestInterupt(SIG_DEST_MAP)){
-                cout << "INTERUPT!!\n";
+            int retval = TestInterupt(SIG_DEST_MAP);
+            if(retval){
+                cout << "INTERUPT!! " << retval << "\n";
                 if(p_progress_x)
                     *p_progress_x = col;
                 if(p_progress_y)
                     *p_progress_y = row;
-                return 1;
+                return retval;
             }
 
             //cout << col << "," << row << "\n" << flush;
@@ -245,74 +246,78 @@ void Map::ActOnSignal(signal sig){
         task.progress_y = 0;
 
 
-        //float x0 = 0.0f, x1 = 1.0f, y0 = 0.0f, y1 = 1.0f;
         switch(sig.val){
             case SIG_VAL_ZOOM_IN:
                 _zoom *= 1.5;
                 task.zoom = _zoom;
                 task.type = TASK_TYPE_ZOOM;
-                //Clear();
                 break;
             case SIG_VAL_ZOOM_OUT:
                 _zoom /= 1.5;
                 task.zoom = _zoom;
                 task.type = TASK_TYPE_ZOOM;
-                //Clear();
                 break;
             case SIG_VAL_UP:
                 _view_y -= 0.1 / _zoom;
                 task.view_y = _view_y;
-                //y0 = 0.9f;
                 task.type = TASK_TYPE_PAN;
                 task.y0 = 0.9f;
                 break;
             case SIG_VAL_DOWN:
                 _view_y += 0.1 / _zoom;
                 task.view_y = _view_y;
-                //y1 = 0.1f;
                 task.type = TASK_TYPE_PAN;
                 task.y1 = 0.1f;
                 break;
             case SIG_VAL_LEFT:
                 _view_x += 0.1 / _zoom;
                 task.view_x = _view_x;
-                //x1 = 0.1f;
                 task.type = TASK_TYPE_PAN;
                 task.x1 = 0.1f;
                 break;
             case SIG_VAL_RIGHT:
                 _view_x -= 0.1 / _zoom;
                 task.view_x = _view_x;
-                //x0 = 0.9f;
                 task.type = TASK_TYPE_PAN;
                 task.x0 = 0.9f;
                 break;
         }
+        if(_zoom > 16000)
+            task.zoom = _zoom = 16000;      // TODO base this on MIN_RECURSION
         SetView(_view_x, _view_y, _zoom, _rotation);
         _task_list.push_back (task);
     }
+    cout << " _zoom: " << _zoom << "\n";
     ProcessTasks();
 }
 
 void Map::ProcessTasks(void){
+    int interupt_val = 0;
+
     for(std::vector<Task>::iterator it = _task_list.begin() ; it != _task_list.end(); ++it){
         cout << "  type: " << it->type << "\tprogress_x: " << it->progress_x << "\tview_x,view_y: " << it->view_x << "," << it->view_y << "\n";
         if(it->type == TASK_TYPE_ZOOM){
-            Clear();
-            DrawSection(&(*it));
-            it->type = 0;       //TODO: only do this if next keypress will draw whole map.
+            if(!it->progress_x and !it->progress_y)
+                Clear();            // only do this if we are not continuing a previously started DrawSection().
+            interupt_val = DrawSection(&(*it));
+            // "< SIG_VAL_UP" covers zoom interrupt and no interrupt.
+            if(interupt_val < SIG_VAL_UP){
+                it->type = 0;       // only do this if next keypress will draw whole map.
+            }
         } else if(it->type == TASK_TYPE_PAN){
             ScrubView();
-            if(DrawSection(&(*it)) == 0){
+            interupt_val = DrawSection(&(*it));
+            if(interupt_val == 0){
                 it->type = 0;
             }
+        }
+        if (interupt_val){
+            return;
         }
     }
     while(_task_list.back().type == 0)
         _task_list.pop_back();
 
-    //renderBitmapString(0.5, 0.5, GLUT_BITMAP_TIMES_ROMAN_10, "Hello World!");
-    cout << _data_points.size() << "\n";
 }
 
 

@@ -31,8 +31,8 @@ class Map : public Viewport{
             _task_list.clear();
         };
         void Draw(void);
-        bool DrawSection(Task*);
-        bool DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_progress_x=0, unsigned int* p_progress_y=0);
+        int DrawSection(Task*);
+        int DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_progress_x=0, unsigned int* p_progress_y=0);
         void ScrubView(void);
         void ScrubView(float x0, float y0, float x1, float y1);
         void ActOnSignal(signal sig);

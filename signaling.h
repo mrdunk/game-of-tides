@@ -43,7 +43,7 @@ private:
     static std::vector<signal>* _p_inactive_sig_buf;
     static unsigned int _write_counter;
     unsigned int _read_counter;
-    static bool _interupt[MAX_DEST_ADDRESSES];
+    static int _interupt[MAX_DEST_ADDRESSES];
 public:
     Signal(void);
     void SwapBuf(void);
@@ -63,9 +63,9 @@ public:
      */
     void ServiceSignals(void);
 
-    /* TestInterupt - If a signal has been registered for an address, this returns true.
+    /* TestInterupt - If a signal has been registered for an address, this returns the interupt.val.
     */
-    bool TestInterupt(unsigned int address);
+    int TestInterupt(unsigned int address);
 };
 
 

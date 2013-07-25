@@ -16,7 +16,7 @@ std::vector<signal> Signal::_sig_buf_B;
 std::vector<signal>* Signal::_p_active_sig_buf;
 std::vector<signal>* Signal::_p_inactive_sig_buf;
 unsigned int Signal::_write_counter = 0;
-bool Signal::_interupt[MAX_DEST_ADDRESSES];
+int Signal::_interupt[MAX_DEST_ADDRESSES];
 
 Signal::Signal(void){
     cout << "Signal::Signal\n";
@@ -44,7 +44,7 @@ void Signal::PushEvent(signal sig){
     cout << "Signal::PushEvent " << _read_counter << "," << _write_counter << "\n";
     sig.sequence = _write_counter++;
     _p_active_sig_buf->push_back(sig);
-    _interupt[sig.dest] = 1;             // set interupt for this dest address.
+    _interupt[sig.dest] = sig.val;             // set interupt for this dest address.
 }
 
 bool Signal::PopEvent(signal* sig){
@@ -87,11 +87,12 @@ void Signal::ServiceSignals(void){
     }
 }
 
-bool Signal::TestInterupt(unsigned int address){
+int Signal::TestInterupt(unsigned int address){
     //cout << "Signal::TestInterupt " << address << " " << _interupt[address] << "\n";
     if(_interupt[address]){
+        int ret_val = _interupt[address];
         _interupt[address] = 0;
-        return 1;
+        return ret_val;
     }
     return 0;
 }

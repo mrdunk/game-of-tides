@@ -9,6 +9,17 @@ using namespace std;
 
 Data Map::data;
 
+Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int low_res) : Viewport(label, pos_x, pos_y, width, height){
+    _task_list.clear();
+    _task_list_low_res.clear();
+    _low_res = low_res;
+    if(_window_index){
+        windows[_window_index].low_res = low_res;
+        windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
+        windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
+    }
+};
+
 void Map::Draw(void){
     while(!windows[_window_index].window);  // wait until window is initialised.
     cout << flush << "Map::Draw " << _window_index << " " << _width << "," << _height << "\n" << flush;
@@ -196,7 +207,20 @@ inline GLubyte Map::WaterCol(float height){
 }
 
 void Map::ScrubView(void){
-    ScrubView(0.0f, 0.0f, 1.0f, 1.0f);
+    float x0, y0, x1, y1;
+    if(_width > _height){
+        x0 = 0.5f - (float)_width / (_height * 2);
+        x1 = 0.5f + (float)_width / (_height * 2);
+        y0 = 0.0f;
+        y1 = 1.0f;
+    } else {
+        x0 = 0.0f;
+        x1 = 1.0f;
+        y0 = 0.5f - (float)_height / (_width * 2);
+        y1 = 0.5f + (float)_height / (_width * 2);
+    }
+    //ScrubView(0.0f, 0.0f, 1.0f, 1.0f);
+    ScrubView(x0, y0, x1, y1);
 }
 
 void Map::ScrubView(float x0, float y0, float x1, float y1){
@@ -207,9 +231,13 @@ void Map::ScrubView(float x0, float y0, float x1, float y1){
 
     std::vector<GLfloat> _data_points_tmp;
     std::vector<GLubyte> _data_colour_tmp;
+    std::vector<GLfloat> _data_points_low_res_tmp;
+    std::vector<GLubyte> _data_colour_low_res_tmp;
 
     std::vector<GLfloat>::iterator data_it = _data_points.begin();
     std::vector<GLubyte>::iterator colour_it = _data_colour.begin();
+    std::vector<GLfloat>::iterator data_low_res_it = _data_points_low_res.begin();
+    std::vector<GLubyte>::iterator colour_low_res_it = _data_colour_low_res.begin();
 
     float x[6], y[6], z[18];
     for (unsigned int i = 0; i < _data_points.size() / 12; ++i){
@@ -234,8 +262,34 @@ void Map::ScrubView(float x0, float y0, float x1, float y1){
             }
         }
     }
-    _data_points.swap(_data_points_tmp);
-    _data_colour.swap(_data_colour_tmp);
+    _data_points.swap(_data_points_tmp);                                                                                                                                       _data_colour.swap(_data_colour_tmp);
+
+    if(_low_res){
+        for (unsigned int i = 0; i < _data_points_low_res.size() / 12; ++i){
+            for(unsigned int d = 0; d < 6; ++d){
+                x[d] = *data_low_res_it;
+                ++data_low_res_it;
+                y[d] = *data_low_res_it;
+                ++data_low_res_it;
+            }
+            for(unsigned int c = 0; c < 18; ++c){
+                z[c] = *colour_low_res_it;
+                ++colour_low_res_it;
+            }
+
+            if(x[0] >= min_x and x[2] <= max_x and y[0] >= min_y and y[1] <= max_y){
+                for(unsigned int d = 0; d < 6; ++d){
+                    _data_points_low_res_tmp.push_back(x[d]);
+                    _data_points_low_res_tmp.push_back(y[d]);
+                }
+                for(unsigned int c = 0; c < 18; ++c){
+                    _data_colour_low_res_tmp.push_back(z[c]);
+                }
+            }
+        }
+        _data_points_low_res.swap(_data_points_low_res_tmp);
+        _data_colour_low_res.swap(_data_colour_low_res_tmp);
+    }
 }
 
 void Map::ActOnSignal(signal sig){
@@ -244,10 +298,18 @@ void Map::ActOnSignal(signal sig){
     //sig.dest << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
     if(sig.type == SIG_TYPE_KEYBOARD){
         Task task;
-        task.x0 = 0.0f;
-        task.x1 = 1.0f;
-        task.y0 = 0.0f;
-        task.y1 = 1.0f;
+        if(_width > _height){
+            task.x0 = 0.5f - (float)_width / (_height * 2);
+            task.x1 = 0.5f + (float)_width / (_height * 2);
+            task.y0 = 0.0f;
+            task.y1 = 1.0f;
+        } else {
+            task.x0 = 0.0f;
+            task.x1 = 1.0f;
+            task.y0 = 0.5f - (float)_height / (_width * 2);
+            task.y1 = 0.5f + (float)_height / (_width * 2);
+        }
+
         task.view_x = _view_x;
         task.view_y = _view_y;
         task.zoom = _zoom;
@@ -274,25 +336,25 @@ void Map::ActOnSignal(signal sig){
                 _view_y -= 0.1 / _zoom;
                 task.view_y = _view_y;
                 task.type = TASK_TYPE_PAN;
-                task.y0 = 0.9f;
+                task.y0 = task.y1 - 0.1f;
                 break;
             case SIG_VAL_DOWN:
                 _view_y += 0.1 / _zoom;
                 task.view_y = _view_y;
                 task.type = TASK_TYPE_PAN;
-                task.y1 = 0.1f;
+                task.y1 = task.y0 + 0.1f;
                 break;
             case SIG_VAL_LEFT:
                 _view_x += 0.1 / _zoom;
                 task.view_x = _view_x;
                 task.type = TASK_TYPE_PAN;
-                task.x1 = 0.1f;
+                task.x1 = task.x0 + 0.1f;
                 break;
             case SIG_VAL_RIGHT:
                 _view_x -= 0.1 / _zoom;
                 task.view_x = _view_x;
                 task.type = TASK_TYPE_PAN;
-                task.x0 = 0.9f;
+                task.x0 = task.x1 - 0.1f;
                 break;
         }
         if(_zoom > 16000)

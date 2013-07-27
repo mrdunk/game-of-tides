@@ -25,6 +25,9 @@ struct Window{
     int rotation;
     std::vector<GLfloat>* _p_data_points;
     std::vector<GLubyte>* _p_data_colour;
+    int low_res;
+    std::vector<GLfloat>* _p_data_points_low_res;
+    std::vector<GLubyte>* _p_data_colour_low_res;
 };
 
 extern Window windows[MAX_WINDOWS];
@@ -55,9 +58,14 @@ class Viewport : public Signal{
         float _zoom;
         int _rotation;
         unsigned int _label;
-    public:
+
+        /* Set resolution of background image to display while main image is being calculated.
+         * if _low_res == 0, background image is not displayed. */
+        int _low_res;
+
         std::vector<GLfloat> _data_points;
         std::vector<GLubyte> _data_colour;
+    public:
         Viewport(unsigned int label, int pos_x, int pos_y, int width, int height);
         void SetView(float view_x, float view_y, float zoom, int rotation);
         virtual void Draw(void);

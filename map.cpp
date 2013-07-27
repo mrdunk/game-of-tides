@@ -16,13 +16,13 @@ void Map::Draw(void){
 
     Clear();
 
-    DrawSection(0.0f, 0.0f, 1.0f, 1.0f);
+    DrawSection(0.0f, 0.0f, 1.0f, 1.0f, 1);
 
     timestamp_t t1 = get_timestamp();
     cout << "Map::Draw took " << (double)(t1 - t0) / 1000000.0L << " seconds.\n";
 }
 
-int Map::DrawSection(Task* p_task){
+int Map::DrawSection(Task* p_task, int resolution){
     float _zoom_holder = _zoom;
     float _view_x_holder = _view_x;
     float _view_y_holder = _view_y;
@@ -30,7 +30,7 @@ int Map::DrawSection(Task* p_task){
     _view_x = p_task->view_x;
     _view_y = p_task->view_y;
 
-    int retval = DrawSection(p_task->x0, p_task->y0, p_task->x1, p_task->y1, &(p_task->progress_x), &(p_task->progress_y));
+    int retval = DrawSection(p_task->x0, p_task->y0, p_task->x1, p_task->y1, resolution, &(p_task->progress_x), &(p_task->progress_y));
 
     _zoom = _zoom_holder;
     _view_x = _view_x_holder;
@@ -39,15 +39,24 @@ int Map::DrawSection(Task* p_task){
     return retval;
 }
 
-int Map::DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_progress_x, unsigned int* p_progress_y){
+int Map::DrawSection(float x0, float y0, float x1, float y1, int resolution, unsigned int* p_progress_x, unsigned int* p_progress_y){
+    std::vector<GLfloat>* _p_data_points;
+    std::vector<GLubyte>* _p_data_colour;
+    if(resolution == _low_res){
+        _p_data_points = &_data_points_low_res;
+        _p_data_colour = &_data_colour_low_res;
+    } else {
+        _p_data_points = &_data_points;
+        _p_data_colour = &_data_colour;
+    }
 
     /* step size will always be a power of 2.
      * This is important to ensure the display pixels coincide with the data structure recursion levels
      * which means un-necesary recursion through the datastructure need not occur. */
     int step_x = MAX_SIZE / (int)pow(2, (int)log2(_width * _zoom));
     int step_y = MAX_SIZE / (int)pow(2, (int)log2(_height * _zoom));
-    //step_x *= resolution;
-    //step_y *= resolution;
+    step_x *= resolution;
+    step_y *= resolution;
 
     /* The (min_y % step_y) part ensures the display is alligned with the datastructure, preventing un-necesary recursion. */
     int min_x = ((0.5f - _view_x) * MAX_SIZE) - (((0.5f - x0) / _zoom) * MAX_SIZE);
@@ -109,68 +118,68 @@ int Map::DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_pro
             br.y = row + step_y;
             br.calculateZ(data.p_mapData);
 
-            _data_points.push_back ((float)tl.x / MAX_SIZE);
-            _data_points.push_back ((float)tl.y / MAX_SIZE);
-            _data_points.push_back ((float)bl.x / MAX_SIZE);
-            _data_points.push_back ((float)bl.y / MAX_SIZE);
-            _data_points.push_back ((float)tr.x / MAX_SIZE);
-            _data_points.push_back ((float)tr.y / MAX_SIZE);
+            _p_data_points->push_back ((float)tl.x / MAX_SIZE);
+            _p_data_points->push_back ((float)tl.y / MAX_SIZE);
+            _p_data_points->push_back ((float)bl.x / MAX_SIZE);
+            _p_data_points->push_back ((float)bl.y / MAX_SIZE);
+            _p_data_points->push_back ((float)tr.x / MAX_SIZE);
+            _p_data_points->push_back ((float)tr.y / MAX_SIZE);
 
-            _data_points.push_back ((float)tr.x / MAX_SIZE);
-            _data_points.push_back ((float)tr.y / MAX_SIZE);
-            _data_points.push_back ((float)bl.x / MAX_SIZE);
-            _data_points.push_back ((float)bl.y / MAX_SIZE);
-            _data_points.push_back ((float)br.x / MAX_SIZE);
-            _data_points.push_back ((float)br.y / MAX_SIZE);
+            _p_data_points->push_back ((float)tr.x / MAX_SIZE);
+            _p_data_points->push_back ((float)tr.y / MAX_SIZE);
+            _p_data_points->push_back ((float)bl.x / MAX_SIZE);
+            _p_data_points->push_back ((float)bl.y / MAX_SIZE);
+            _p_data_points->push_back ((float)br.x / MAX_SIZE);
+            _p_data_points->push_back ((float)br.y / MAX_SIZE);
 
-            _data_colour.push_back (0);
+            _p_data_colour->push_back (0);
             if(tl.z > data.Waterlevel()){
-                _data_colour.push_back ((float)(data.Height_z_max() - tl.z) * z_multiplier_dry);
-                _data_colour.push_back (0);
+                _p_data_colour->push_back ((float)(data.Height_z_max() - tl.z) * z_multiplier_dry);
+                _p_data_colour->push_back (0);
             } else {
-                _data_colour.push_back (0);
-                _data_colour.push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (0);
+                _p_data_colour->push_back (WaterCol(bl.z));
             }
-            _data_colour.push_back (0);
+            _p_data_colour->push_back (0);
             if(bl.z > data.Waterlevel()){
-                _data_colour.push_back ((float)(data.Height_z_max() - bl.z) * z_multiplier_dry);
-                _data_colour.push_back (0);
+                _p_data_colour->push_back ((float)(data.Height_z_max() - bl.z) * z_multiplier_dry);
+                _p_data_colour->push_back (0);
             } else {
-                _data_colour.push_back (0);
-                _data_colour.push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (0);
+                _p_data_colour->push_back (WaterCol(bl.z));
             }
-            _data_colour.push_back (0);
+            _p_data_colour->push_back (0);
             if(tr.z > data.Waterlevel()){
-                _data_colour.push_back ((float)(data.Height_z_max() - tr.z) * z_multiplier_dry);
-                _data_colour.push_back (0);
+                _p_data_colour->push_back ((float)(data.Height_z_max() - tr.z) * z_multiplier_dry);
+                _p_data_colour->push_back (0);
             } else {        
-                _data_colour.push_back (0);
-                _data_colour.push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (0);
+                _p_data_colour->push_back (WaterCol(bl.z));
             }
 
-            _data_colour.push_back (0);
+            _p_data_colour->push_back (0);
             if(tr.z > data.Waterlevel()){
-                _data_colour.push_back ((float)(data.Height_z_max() - tr.z) * z_multiplier_dry);
-                _data_colour.push_back (0);
+                _p_data_colour->push_back ((float)(data.Height_z_max() - tr.z) * z_multiplier_dry);
+                _p_data_colour->push_back (0);
             } else {        
-                _data_colour.push_back (0); 
-                _data_colour.push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (0); 
+                _p_data_colour->push_back (WaterCol(bl.z));
             }
-            _data_colour.push_back (0);
+            _p_data_colour->push_back (0);
             if(bl.z > data.Waterlevel()){
-                _data_colour.push_back ((float)(data.Height_z_max() - bl.z) * z_multiplier_dry);
-                _data_colour.push_back (0);
+                _p_data_colour->push_back ((float)(data.Height_z_max() - bl.z) * z_multiplier_dry);
+                _p_data_colour->push_back (0);
             } else {        
-                _data_colour.push_back (0);
-                _data_colour.push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (0);
+                _p_data_colour->push_back (WaterCol(bl.z));
             }
-            _data_colour.push_back (0);
+            _p_data_colour->push_back (0);
             if(br.z > data.Waterlevel()){
-                _data_colour.push_back ((float)(data.Height_z_max() - br.z) * z_multiplier_dry);
-                _data_colour.push_back (0);
+                _p_data_colour->push_back ((float)(data.Height_z_max() - br.z) * z_multiplier_dry);
+                _p_data_colour->push_back (0);
             } else {        
-                _data_colour.push_back (0);
-                _data_colour.push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (0);
+                _p_data_colour->push_back (WaterCol(bl.z));
             }
         }
     }
@@ -251,11 +260,15 @@ void Map::ActOnSignal(signal sig){
                 _zoom *= 1.5;
                 task.zoom = _zoom;
                 task.type = TASK_TYPE_ZOOM;
+                _task_list.clear();
+                _task_list_low_res.clear();
                 break;
             case SIG_VAL_ZOOM_OUT:
                 _zoom /= 1.5;
                 task.zoom = _zoom;
                 task.type = TASK_TYPE_ZOOM;
+                _task_list.clear();
+                _task_list_low_res.clear();
                 break;
             case SIG_VAL_UP:
                 _view_y -= 0.1 / _zoom;
@@ -286,38 +299,48 @@ void Map::ActOnSignal(signal sig){
             task.zoom = _zoom = 16000;      // TODO base this on MIN_RECURSION
         SetView(_view_x, _view_y, _zoom, _rotation);
         _task_list.push_back (task);
+        if(_low_res)
+            _task_list_low_res.push_back (task);
     }
     cout << " _zoom: " << _zoom << "\n";
-    ProcessTasks();
+
+    if(!ProcessTasks(&_task_list_low_res))
+        ProcessTasks(&_task_list);
 }
 
-void Map::ProcessTasks(void){
+bool Map::ProcessTasks(std::vector<Task>* p_task_list){
     int interupt_val = 0;
+    int resolution = 1;
+    if(p_task_list == &_task_list_low_res){
+        resolution = _low_res;
+    }
 
-    for(std::vector<Task>::iterator it = _task_list.begin() ; it != _task_list.end(); ++it){
-        cout << "  type: " << it->type << "\tprogress_x: " << it->progress_x << "\tview_x,view_y: " << it->view_x << "," << it->view_y << "\n";
+    for(std::vector<Task>::iterator it = p_task_list->begin() ; it != p_task_list->end(); ++it){
+        cout << "  resolution: " << resolution << "\ttype: " << it->type << "\tprogress_x: " << it->progress_x << 
+                "\tview_x,view_y: " << it->view_x << "," << it->view_y << "\n";
         if(it->type == TASK_TYPE_ZOOM){
             if(!it->progress_x and !it->progress_y)
                 Clear();            // only do this if we are not continuing a previously started DrawSection().
-            interupt_val = DrawSection(&(*it));
+            interupt_val = DrawSection(&(*it), resolution);
             // "< SIG_VAL_UP" covers zoom interrupt and no interrupt.
             if(interupt_val < SIG_VAL_UP){
                 it->type = 0;       // only do this if next keypress will draw whole map.
             }
         } else if(it->type == TASK_TYPE_PAN){
             ScrubView();
-            interupt_val = DrawSection(&(*it));
+            interupt_val = DrawSection(&(*it), resolution);
             if(interupt_val == 0){
                 it->type = 0;
             }
         }
         if (interupt_val){
-            return;
+            return 1;
         }
     }
-    while(_task_list.back().type == 0)
-        _task_list.pop_back();
-
+    while(p_task_list->size() > 0 and p_task_list->back().type == 0){
+        p_task_list->pop_back();
+    }
+    return 0;
 }
 
 

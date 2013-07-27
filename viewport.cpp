@@ -162,8 +162,32 @@ void Display(void){
     if(!windows[window_index]._p_data_colour)
         return;
 
+    /* Do low resolution draw in background if enabled. */
+    if(windows[window_index].low_res){
+        const GLsizeiptr PositionSize = windows[window_index]._p_data_points_low_res->size() * sizeof(GLfloat);
+        const int VertexCount = windows[window_index]._p_data_points_low_res->size() / 2;
+        const GLsizeiptr ColorSize = windows[window_index]._p_data_colour_low_res->size() * sizeof(GLubyte);
+
+        glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
+        glBufferData(GL_ARRAY_BUFFER, ColorSize, &(windows[window_index]._p_data_colour_low_res->front()), GL_STREAM_DRAW);
+        glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
+        glBufferData(GL_ARRAY_BUFFER, PositionSize, &(windows[window_index]._p_data_points_low_res->front()), GL_STREAM_DRAW);
+        glVertexPointer(2, GL_FLOAT, 0, 0);
+
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+
+        glDrawArrays(GL_TRIANGLES, 0, VertexCount);
+
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
+    }
+
     const GLsizeiptr PositionSize = windows[window_index]._p_data_points->size() * sizeof(GLfloat);
-    const int TriangleCount = windows[window_index]._p_data_points->size() / 2;
+    const int VertexCount = windows[window_index]._p_data_points->size() / 2;
     const GLsizeiptr ColorSize = windows[window_index]._p_data_colour->size() * sizeof(GLubyte);
 
     //cout << "** " << window_index << " " << PositionSize<< "\t" << ColorSize << "\n";
@@ -180,16 +204,17 @@ void Display(void){
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
 
-    glDrawArrays(GL_TRIANGLES, 0, TriangleCount);
+    glDrawArrays(GL_TRIANGLES, 0, VertexCount);
 
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
+
 
     float linespace = 2.0f * 15 / windows[window_index].height;
     glPushMatrix();
     glLoadIdentity();       // load default matrix
     char Result[64]; 
-    sprintf ( Result, "Triangles: %d", TriangleCount );
+    sprintf ( Result, "Triangles: %d", VertexCount / 3 );
     renderBitmapString(-0.95, -0.95, GLUT_BITMAP_TIMES_ROMAN_10, Result);
     
     int pixSize = MAX_SIZE / (windows[window_index].width * windows[window_index].zoom * MIN_RECURSION);
@@ -325,7 +350,8 @@ Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int heig
                           windows[i].initialised = 0, windows[i].dirty = 1,
                           windows[i].view_x = 0, windows[i].view_y = 0,
                           windows[i].zoom = 1, windows[i].rotation = 0,
-                          windows[i]._p_data_points = &_data_points, windows[i]._p_data_colour = &_data_colour};
+                          windows[i]._p_data_points = &_data_points, windows[i]._p_data_colour = &_data_colour,
+                          windows[i].low_res = 0};
             _window_index = i;
             _pos_x = pos_x;
             _pos_y = pos_y;
@@ -335,6 +361,7 @@ Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int heig
             _view_y = 0;
             _zoom = 1;
             _rotation = 0;
+            _low_res = 0;
 
             Draw();
             break;

@@ -54,11 +54,11 @@ struct Coordinate{
 struct MapPoint : public Coordinate{
     unsigned int z;
     static unsigned int counter;
+
+    /* Will allow culling of seldom used nodes. */
     unsigned int last_accesed;
-    //static unsigned int _waterlevel;
-    //void Set_waterlevel(unsigned int waterlevel){
-    //    _waterlevel = waterlevel;
-    //}
+
+    unsigned int tide[16];
 
     /*
     */

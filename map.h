@@ -4,6 +4,7 @@
 #include "viewport.h"
 #include "data.h"
 
+#define LOW_RESOLUTION 4
 #define TASK_TYPE_ZOOM 1
 #define TASK_TYPE_PAN  2
 
@@ -26,17 +27,28 @@ class Map : public Viewport{
 
         /* _task_list is for queuing screen segments to be drawn when time allows. */
         std::vector<Task> _task_list;
+        std::vector<Task> _task_list_low_res;
+
+        std::vector<GLfloat> _data_points_low_res;
+        std::vector<GLubyte> _data_colour_low_res;
     public:
-        Map(unsigned int label, int pos_x, int pos_y, int width, int height) : Viewport(label, pos_x, pos_y, width, height){
+        Map(unsigned int label, int pos_x, int pos_y, int width, int height, int low_res=0) : Viewport(label, pos_x, pos_y, width, height){
             _task_list.clear();
+            _task_list_low_res.clear();
+            _low_res = low_res;
+            if(_window_index){
+                windows[_window_index].low_res = low_res;
+                windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
+                windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
+            }
         };
         void Draw(void);
-        int DrawSection(Task*);
-        int DrawSection(float x0, float y0, float x1, float y1, unsigned int* p_progress_x=0, unsigned int* p_progress_y=0);
+        int DrawSection(Task*, int resolution);
+        int DrawSection(float x0, float y0, float x1, float y1, int resolution, unsigned int* p_progress_x=0, unsigned int* p_progress_y=0);
         void ScrubView(void);
         void ScrubView(float x0, float y0, float x1, float y1);
         void ActOnSignal(signal sig);
-        void ProcessTasks(void);
+        bool ProcessTasks(std::vector<Task>* p_task_list);
         GLubyte WaterCol(float height);
 };
 

@@ -36,7 +36,8 @@ int main(int argc, char** argv)
     Viewport testViewport(SIG_DEST_TEST, 0, 0, 400, 200);
     Viewport testViewport2(SIG_DEST_TEST, 400, 0, 400, 600);
     Viewport testViewport3(SIG_DEST_TEST, 250, 50, 100, 100);
-    Map testMap(SIG_DEST_MAP, 0, 200, 600, 600);
+    Map testMap(SIG_DEST_MAP, 0, 200, 400, 600, LOW_RESOLUTION);
+
     //testMap.SetView(0,0,5,0);
 
     testMap.Draw();

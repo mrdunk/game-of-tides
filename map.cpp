@@ -1,22 +1,35 @@
 #include <iostream>
+#include <GL/glut.h>
 
 #include "map.h"
 #include "data.h"
 #include "time_code.c"
-#include <GL/glut.h>
 
 using namespace std;
 
 Data Map::data;
 
 Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int low_res) : Viewport(label, pos_x, pos_y, width, height){
+    while(!_window_index); // wait until window is initialised.
     _task_list.clear();
     _task_list_low_res.clear();
     _low_res = low_res;
-    if(_window_index){
-        windows[_window_index].low_res = low_res;
-        windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
-        windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
+    windows[_window_index].low_res = low_res;
+    windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
+    windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
+    
+    vessels.StartIcon();
+    Icon icon;
+    icon.scale = 0;
+    icon.key = 1;
+    while(icon.key != 0){
+        icon = vessels.NextIcon(0,0,MAX_SIZE,MAX_SIZE);
+        if(icon.scale){
+            Icon_key key;
+            key.type = ICON_TYPE_VESSEL;
+            key.key = icon.key;
+            AddIcon(key, icon);
+        }
     }
 };
 
@@ -363,11 +376,13 @@ void Map::ActOnSignal(signal sig){
         _task_list.push_back (task);
         if(_low_res)
             _task_list_low_res.push_back (task);
+
+        RedrawIcons();
+
+        if(!ProcessTasks(&_task_list_low_res))
+            ProcessTasks(&_task_list);
     }
     cout << " _zoom: " << _zoom << "\n";
-
-    if(!ProcessTasks(&_task_list_low_res))
-        ProcessTasks(&_task_list);
 }
 
 bool Map::ProcessTasks(std::vector<Task>* p_task_list){

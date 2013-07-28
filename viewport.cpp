@@ -8,6 +8,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <math.h>       /* sin */
+
+#define PI 3.14159265
 
 #include "viewport.h"
 #include "data.h"
@@ -162,11 +165,15 @@ void Display(void){
     if(!windows[window_index]._p_data_colour)
         return;
 
+    GLsizeiptr PositionSize;
+    int VertexCount;
+    GLsizeiptr ColorSize;
+
     /* Do low resolution draw in background if enabled. */
     if(windows[window_index].low_res){
-        const GLsizeiptr PositionSize = windows[window_index]._p_data_points_low_res->size() * sizeof(GLfloat);
-        const int VertexCount = windows[window_index]._p_data_points_low_res->size() / 2;
-        const GLsizeiptr ColorSize = windows[window_index]._p_data_colour_low_res->size() * sizeof(GLubyte);
+        PositionSize = windows[window_index]._p_data_points_low_res->size() * sizeof(GLfloat);
+        VertexCount = windows[window_index]._p_data_points_low_res->size() / 2;
+        ColorSize = windows[window_index]._p_data_colour_low_res->size() * sizeof(GLubyte);
 
         glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
         glBufferData(GL_ARRAY_BUFFER, ColorSize, &(windows[window_index]._p_data_colour_low_res->front()), GL_STREAM_DRAW);
@@ -186,11 +193,10 @@ void Display(void){
         glDisableClientState(GL_VERTEX_ARRAY);
     }
 
-    const GLsizeiptr PositionSize = windows[window_index]._p_data_points->size() * sizeof(GLfloat);
-    const int VertexCount = windows[window_index]._p_data_points->size() / 2;
-    const GLsizeiptr ColorSize = windows[window_index]._p_data_colour->size() * sizeof(GLubyte);
-
-    //cout << "** " << window_index << " " << PositionSize<< "\t" << ColorSize << "\n";
+    /* Draw regular resolution backgreund. */
+    PositionSize = windows[window_index]._p_data_points->size() * sizeof(GLfloat);
+    VertexCount = windows[window_index]._p_data_points->size() / 2;
+    ColorSize = windows[window_index]._p_data_colour->size() * sizeof(GLubyte);
 
     glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
     glBufferData(GL_ARRAY_BUFFER, ColorSize, &(windows[window_index]._p_data_colour->front()), GL_STREAM_DRAW);
@@ -210,17 +216,42 @@ void Display(void){
     glDisableClientState(GL_VERTEX_ARRAY);
 
 
+    /* Text output */
     float linespace = 2.0f * 15 / windows[window_index].height;
     glPushMatrix();
     glLoadIdentity();       // load default matrix
-    char Result[64]; 
+    char Result[64];
     sprintf ( Result, "Triangles: %d", VertexCount / 3 );
     renderBitmapString(-0.95, -0.95, GLUT_BITMAP_TIMES_ROMAN_10, Result);
-    
+
     int pixSize = MAX_SIZE / (windows[window_index].width * windows[window_index].zoom * MIN_RECURSION);
     sprintf ( Result, "PixelSize: %d m", pixSize );
     renderBitmapString(-0.95, -0.95 + linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
     glPopMatrix();
+
+
+    /* Draw Icon buffer. */
+    PositionSize = windows[window_index]._p_data_points_icons->size() * sizeof(GLfloat);
+    VertexCount = windows[window_index]._p_data_points_icons->size() / 2;
+    ColorSize = windows[window_index]._p_data_colour_icons->size() * sizeof(GLubyte);
+
+    glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
+    glBufferData(GL_ARRAY_BUFFER, ColorSize, &(windows[window_index]._p_data_colour_icons->front()), GL_STREAM_DRAW);
+    glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
+    glBufferData(GL_ARRAY_BUFFER, PositionSize, &(windows[window_index]._p_data_points_icons->front()), GL_STREAM_DRAW);
+    glVertexPointer(2, GL_FLOAT, 0, 0);
+
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+
+    glDrawArrays(GL_TRIANGLES, 0, VertexCount);
+
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+
 
     //glFlush ();
     glutSwapBuffers();
@@ -344,14 +375,23 @@ Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int heig
     while(i < MAX_WINDOWS){
         if(windows[i].window == 0 and windows[i].initialised == 0 and windows[i].dirty == 0){
             cout << "Viewport::Viewport 3: " << i << "\n" << flush;
-            windows[i] = {windows[i].window = 0, windows[i].window_border = 0,
-                          windows[i].pos_x = pos_x, windows[i].pos_y = pos_y, 
-                          windows[i].width = width - 2*BORDERWIDTH, windows[i].height = height - 2*BORDERWIDTH, 
-                          windows[i].initialised = 0, windows[i].dirty = 1,
-                          windows[i].view_x = 0, windows[i].view_y = 0,
-                          windows[i].zoom = 1, windows[i].rotation = 0,
-                          windows[i]._p_data_points = &_data_points, windows[i]._p_data_colour = &_data_colour,
-                          windows[i].low_res = 0};
+            windows[i].window = 0;
+            windows[i].window_border = 0;
+            windows[i].pos_x = pos_x;
+            windows[i].pos_y = pos_y;
+            windows[i].width = width - 2*BORDERWIDTH;
+            windows[i].height = height - 2*BORDERWIDTH;
+            windows[i].initialised = 0;
+            windows[i].dirty = 1;
+            windows[i].view_x = 0;
+            windows[i].view_y = 0;
+            windows[i].zoom = 1;
+            windows[i].rotation = 0;
+            windows[i]._p_data_points = &_data_points;
+            windows[i]._p_data_colour = &_data_colour;
+            windows[i]._p_data_points_icons = &_data_points_icons;
+            windows[i]._p_data_colour_icons = &_data_colour_icons;
+            windows[i].low_res = 0;
             _window_index = i;
             _pos_x = pos_x;
             _pos_y = pos_y;
@@ -462,4 +502,63 @@ void Viewport::Clear(void){
 void Viewport::ActOnSignal(signal sig){
     //cout << "Viewport::ActOnSignal " << "\tsig.source: " << sig.source << "\tsig.dest: " << 
     //sig.dest << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
+}
+
+void Viewport::AddIcon(Icon_key key, Icon icon){
+    _icons.insert(pair<Icon_key,Icon>(key,icon));
+    //_icons[key] = icon;
+}
+
+void Viewport::RedrawIcons(void){
+    //cout << "Viewport::RedrawIcons\n";
+    float scale;
+    _data_points_icons.clear();
+    _data_colour_icons.clear();
+    for (std::map<Icon_key,Icon>::iterator it=_icons.begin(); it!=_icons.end(); ++it){
+        //cout << "+" << it->second.points.size();
+        scale = it->second.scale;
+        if (it->second.fixed_size == 1)
+            scale /= _zoom;
+        for(unsigned int p = 0; p < it->second.points.size() / 2; ++p){
+            //cout << ".";
+            float x = (it->second.points.at(p * 2   ) - it->second.centre_x) * scale;
+            float y = (it->second.points.at(p * 2 +1) - it->second.centre_y) * scale;
+            _data_points_icons.push_back(cos(-it->second.angle * PI / 180) * x - sin(-it->second.angle * PI / 180) * y + it->second.pos_x);
+            _data_points_icons.push_back(sin(-it->second.angle * PI / 180) * x + cos(-it->second.angle * PI / 180) * y + it->second.pos_y);
+            _data_colour_icons.push_back(it->second.colour.at(p * 3   ));
+            _data_colour_icons.push_back(it->second.colour.at(p * 3 +1));
+            _data_colour_icons.push_back(it->second.colour.at(p * 3 +2));
+        }
+    }
+    //cout << "\n";
+}
+
+Icon Viewport::TestIcon(void){
+    Icon icon;
+    icon.points.push_back (0.5f);
+    icon.points.push_back (1.0f);
+    icon.points.push_back (0.6f);
+    icon.points.push_back (0.0f);
+    icon.points.push_back (0.4f);
+    icon.points.push_back (0.0f);
+
+    icon.colour.push_back (255);
+    icon.colour.push_back (0);
+    icon.colour.push_back (0);
+    icon.colour.push_back (255);
+    icon.colour.push_back (0);
+    icon.colour.push_back (0);
+    icon.colour.push_back (255);
+    icon.colour.push_back (0);
+    icon.colour.push_back (0);
+
+    icon.angle = -135.0f;
+    icon.scale = 0.05f;
+    icon.fixed_size = 0;
+    icon.centre_x = 0.5f;
+    icon.centre_y = 0.5f;
+    icon.pos_x = 0.25f;
+    icon.pos_y = 0.5f;
+
+    return icon;
 }

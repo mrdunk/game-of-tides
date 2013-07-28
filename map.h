@@ -3,6 +3,7 @@
 
 #include "viewport.h"
 #include "data.h"
+#include "vessel.h"
 
 #define LOW_RESOLUTION 4
 #define TASK_TYPE_ZOOM 1
@@ -31,6 +32,9 @@ class Map : public Viewport{
 
         std::vector<GLfloat> _data_points_low_res;
         std::vector<GLubyte> _data_colour_low_res;
+
+        Fleet vessels;
+
     public:
         Map(unsigned int label, int pos_x, int pos_y, int width, int height, int low_res=0);
         void Draw(void);

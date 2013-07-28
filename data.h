@@ -9,8 +9,8 @@
 #define MAX_SIZE (int)pow(2, MAX_RECURSION)
 #define OFF_MAP_HEIGHT MAX_SIZE/2
 #define SEED_MAP_HEIGHT OFF_MAP_HEIGHT
-#define GAME_NUMBER 123456
-#define SEED .1
+#define GAME_NUMBER 1234568
+#define SEED .15
 #define LANDMASS .2
 
 /* http://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function

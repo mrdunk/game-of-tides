@@ -25,3 +25,4 @@ Instructions:
     Cursor-Right    Pan right
     -               Zoom out
     =               Zoom in
+

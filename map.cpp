@@ -99,7 +99,9 @@ int Map::DrawSection(float x0, float y0, float x1, float y1, int resolution, uns
         return 0;
     if(min_y == 0 and max_y > (unsigned int)MAX_SIZE and _zoom != 1.0f)
         return 0;
-
+    if(min_x > max_x or min_y > max_y)
+        return 0;
+        
     if (max_x > (unsigned int)MAX_SIZE)
         max_x = MAX_SIZE;
     if (max_y > (unsigned int)MAX_SIZE)
@@ -115,6 +117,10 @@ int Map::DrawSection(float x0, float y0, float x1, float y1, int resolution, uns
     for(unsigned int row = min_y; row < max_y; row+=step_y){
         if(p_progress_y and *p_progress_y > row){
             continue;
+        }
+        if(_p_data_points->size() > 4000000){
+          cout << "RUNAWAY!\n";
+          return 0;
         }
         //if(TestInterupt(SIG_DEST_MAP)){
         //    cout << "INTERUPT!!\n";

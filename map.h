@@ -5,9 +5,10 @@
 #include "data.h"
 #include "vessel.h"
 
-#define LOW_RESOLUTION 4
+#define LOW_RESOLUTION 8 
 #define TASK_TYPE_ZOOM 1
 #define TASK_TYPE_PAN  2
+#define KEY_MOVMENT 0.01f
 
 struct Task{
     int type;

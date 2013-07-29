@@ -18,11 +18,7 @@ void task1(string msg)
     Signal Sig;
     //signal sig;
     while(true){
-        usleep(FRAME_LENGTH * 500);
-        //while(Sig.PopEvent(&sig)){
-        //    cout << " " << Sig._read_counter << "\tsig.source: " << sig.source << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
-        //}
-        //cout << "." << flush;
+        usleep(FRAME_LENGTH * 100);
         Sig.ServiceSignals(); 
     }
 }

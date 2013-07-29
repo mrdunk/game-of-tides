@@ -227,6 +227,10 @@ void Display(void){
     int pixSize = MAX_SIZE / (windows[window_index].width * windows[window_index].zoom * MIN_RECURSION);
     sprintf ( Result, "PixelSize: %d m", pixSize );
     renderBitmapString(-0.95, -0.95 + linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+
+    sprintf ( Result, "sig_buf: %d %d", Signal_instance._sig_buf_A.size(), Signal_instance._sig_buf_B.size());
+    renderBitmapString(-0.95, -0.95 + 2*linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+
     glPopMatrix();
 
 
@@ -272,9 +276,12 @@ void click(int button, int state, int x, int y){
 void timer(int value){
     //cout<<"timer "<<value<<"\n";
     glutTimerFunc(FRAME_LENGTH, timer, 1);
-    //refresh();
     refreshChildWindows();
-    //Signal_instance.SwapBuf();
+    static int count = 0;
+    if(++count == 10){
+        Signal_instance.SwapBuf();
+        count = 0;
+    }
 }
 
 void keyboard(unsigned char key, int x, int y){

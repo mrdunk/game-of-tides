@@ -37,8 +37,10 @@ class Viewport;             // Declared here to prevent circular dependancy isss
 class Signal{
 private:
     static std::unordered_map<unsigned int, Viewport*> _registered_endpoints;
+public:
     static std::vector<signal> _sig_buf_A;
     static std::vector<signal> _sig_buf_B;
+private:
     static std::vector<signal>* _p_active_sig_buf;
     static std::vector<signal>* _p_inactive_sig_buf;
     static unsigned int _write_counter;

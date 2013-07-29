@@ -93,6 +93,13 @@ int Map::DrawSection(float x0, float y0, float x1, float y1, int resolution, uns
         min_y = 0;
     unsigned int max_x = ((0.5f - _view_x) * MAX_SIZE) - (((0.5f - x1) / _zoom) * MAX_SIZE);
     unsigned int max_y = ((0.5f - _view_y) * MAX_SIZE) - (((0.5f - y1) / _zoom) * MAX_SIZE);
+
+    /* special case to guard against a bug that occurs when x0==0 and x1==0 */
+    if(min_x == 0 and max_x > MAX_SIZE and _zoom != 1.0f)
+        return 0;
+    if(min_y == 0 and max_y > MAX_SIZE and _zoom != 1.0f)
+        return 0;
+
     if (max_x > (unsigned int)MAX_SIZE)
         max_x = MAX_SIZE;
     if (max_y > (unsigned int)MAX_SIZE)
@@ -102,8 +109,9 @@ int Map::DrawSection(float x0, float y0, float x1, float y1, int resolution, uns
 
     MapPoint tl, tr, bl, br;
 
-    //cout << "min_x: " << min_x << "\tmax_x: " << max_x << "\tmin_y: " << min_y << "\tmax_y: " << max_y << "\n";
-    //cout << "step_x: " << step_x << "\tstep_y: " << step_y << "\n";
+    cout << "min_x: " << min_x << "\tmax_x: " << max_x << "\tmin_y: " << min_y << "\tmax_y: " << max_y << "\n";
+    cout << "step_x: " << step_x << "\tstep_y: " << step_y << "\n";
+    cout << "y0: " << y0 << "\ty1: " << y1 << "\n";
     for(unsigned int row = min_y; row < max_y; row+=step_y){
         if(p_progress_y and *p_progress_y > row){
             continue;
@@ -207,10 +215,10 @@ int Map::DrawSection(float x0, float y0, float x1, float y1, int resolution, uns
             }
         }
     }
-    if(p_progress_x and p_progress_y){
-        *p_progress_x = MAX_SIZE;
-        *p_progress_y = MAX_SIZE;
-    }
+//    if(p_progress_x and p_progress_y){
+//        *p_progress_x = MAX_SIZE;
+//        *p_progress_y = MAX_SIZE;
+//    }
     return 0;
 }
 
@@ -346,28 +354,28 @@ void Map::ActOnSignal(signal sig){
                 _task_list_low_res.clear();
                 break;
             case SIG_VAL_UP:
-                _view_y -= 0.1 / _zoom;
+                _view_y -= KEY_MOVMENT / _zoom;
                 task.view_y = _view_y;
                 task.type = TASK_TYPE_PAN;
-                task.y0 = task.y1 - 0.1f;
+                task.y0 = task.y1 - KEY_MOVMENT;
                 break;
             case SIG_VAL_DOWN:
-                _view_y += 0.1 / _zoom;
+                _view_y += KEY_MOVMENT / _zoom;
                 task.view_y = _view_y;
                 task.type = TASK_TYPE_PAN;
-                task.y1 = task.y0 + 0.1f;
+                task.y1 = task.y0 + KEY_MOVMENT;
                 break;
             case SIG_VAL_LEFT:
-                _view_x += 0.1 / _zoom;
+                _view_x += KEY_MOVMENT / _zoom;
                 task.view_x = _view_x;
                 task.type = TASK_TYPE_PAN;
-                task.x1 = task.x0 + 0.1f;
+                task.x1 = task.x0 + KEY_MOVMENT;
                 break;
             case SIG_VAL_RIGHT:
-                _view_x -= 0.1 / _zoom;
+                _view_x -= KEY_MOVMENT / _zoom;
                 task.view_x = _view_x;
                 task.type = TASK_TYPE_PAN;
-                task.x0 = task.x1 - 0.1f;
+                task.x0 = task.x1 - KEY_MOVMENT;
                 break;
         }
         if(_zoom > 16000)
@@ -377,12 +385,14 @@ void Map::ActOnSignal(signal sig){
         if(_low_res)
             _task_list_low_res.push_back (task);
 
-        RedrawIcons();
-
-        if(!ProcessTasks(&_task_list_low_res))
+        //RedrawIcons();
+        //ScrubView();
+        
+        if(!ProcessTasks(&_task_list_low_res)){
+            ScrubView();
             ProcessTasks(&_task_list);
+        }
     }
-    cout << " _zoom: " << _zoom << "\n";
 }
 
 bool Map::ProcessTasks(std::vector<Task>* p_task_list){
@@ -392,19 +402,22 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
         resolution = _low_res;
     }
 
+    RedrawIcons();
+
     for(std::vector<Task>::iterator it = p_task_list->begin() ; it != p_task_list->end(); ++it){
-        cout << "  resolution: " << resolution << "\ttype: " << it->type << "\tprogress_x: " << it->progress_x << 
-                "\tview_x,view_y: " << it->view_x << "," << it->view_y << "\n";
+        //cout << "  resolution: " << resolution << "\ttype: " << it->type << "\tprogress_y: " << it->progress_y << 
+        //        "\tview_x,view_y: " << it->view_x << "," << it->view_y << "\n";
         if(it->type == TASK_TYPE_ZOOM){
-            if(!it->progress_x and !it->progress_y)
+            if(!it->progress_x and !it->progress_y){
                 Clear();            // only do this if we are not continuing a previously started DrawSection().
+            }
             interupt_val = DrawSection(&(*it), resolution);
             // "< SIG_VAL_UP" covers zoom interrupt and no interrupt.
             if(interupt_val < SIG_VAL_UP){
                 it->type = 0;       // only do this if next keypress will draw whole map.
             }
         } else if(it->type == TASK_TYPE_PAN){
-            ScrubView();
+            //ScrubView();
             interupt_val = DrawSection(&(*it), resolution);
             if(interupt_val == 0){
                 it->type = 0;

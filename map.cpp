@@ -95,9 +95,9 @@ int Map::DrawSection(float x0, float y0, float x1, float y1, int resolution, uns
     unsigned int max_y = ((0.5f - _view_y) * MAX_SIZE) - (((0.5f - y1) / _zoom) * MAX_SIZE);
 
     /* special case to guard against a bug that occurs when x0==0 and x1==0 */
-    if(min_x == 0 and max_x > MAX_SIZE and _zoom != 1.0f)
+    if(min_x == 0 and max_x > (unsigned int)MAX_SIZE and _zoom != 1.0f)
         return 0;
-    if(min_y == 0 and max_y > MAX_SIZE and _zoom != 1.0f)
+    if(min_y == 0 and max_y > (unsigned int)MAX_SIZE and _zoom != 1.0f)
         return 0;
 
     if (max_x > (unsigned int)MAX_SIZE)
@@ -262,6 +262,11 @@ void Map::ScrubView(float x0, float y0, float x1, float y1){
 
     float x[6], y[6], z[18];
     for (unsigned int i = 0; i < _data_points.size() / 12; ++i){
+        int retval = TestInterupt(SIG_DEST_MAP);
+        if(retval){
+            cout << "INTERUPT 2!\n";
+            return;
+        }
         for(unsigned int d = 0; d < 6; ++d){
             x[d] = *data_it;
             ++data_it;

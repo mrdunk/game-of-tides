@@ -18,7 +18,7 @@ void task1(string msg)
     Signal Sig;
     //signal sig;
     while(true){
-        usleep(FRAME_LENGTH * 100);
+        usleep(FRAME_LENGTH * 500);
         Sig.ServiceSignals(); 
     }
 }

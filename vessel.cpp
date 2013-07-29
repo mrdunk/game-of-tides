@@ -19,13 +19,13 @@ Icon Vessel::PopulateIcon(unsigned int x0, unsigned int y0, unsigned int x1, uns
     cout << "Vessel \"" << description << "\"\n";
 
     icon.angle = 0.0f;
-    icon.scale = 0.1f;
-    icon.fixed_size = 1;
+    icon.scale = (float)16/100;     // 10 == pow(2, MIN_RECURSION), 100 == all vessel dimensions are specified in cm.
+    icon.fixed_size = 0;
     icon.centre_x = 0.5f;
     icon.centre_y = 0.5f;
-    icon.pos_x = 0.5f;
-    icon.pos_y = 0.5f;
-
+    icon.pos_x = (float)pos_x / MAX_SIZE;
+    icon.pos_y = (float)pos_y / MAX_SIZE;
+/*
     icon.points.push_back (0.5f);
     icon.points.push_back (1.0f);
     icon.points.push_back (0.6f);
@@ -44,51 +44,52 @@ Icon Vessel::PopulateIcon(unsigned int x0, unsigned int y0, unsigned int x1, uns
     icon.colour.push_back (0);
 
     return icon;
-/*
+*/
     int bowsprit = 0;
     int size = length;
 
-    p_data_points->push_back((float)(pos_x) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
 
-    p_data_points->push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
-
-
-    p_data_points->push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
 
 
-    p_data_points->push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x - beam/4) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y - size/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
 
-    p_data_points->push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x - beam/4) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y - size/2) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_x + beam/4) / MAX_SIZE);
-    p_data_points->push_back((float)(pos_y - size/2) / MAX_SIZE);
+
+    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x - beam/4) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y - size/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+
+    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x - beam/4) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y - size/2) / MAX_SIZE);
+    icon.points.push_back((float)(pos_x + beam/4) / MAX_SIZE);
+    icon.points.push_back((float)(pos_y - size/2) / MAX_SIZE);
 
     for(int i = 0; i < 15 * 3; i++){
-        p_data_colour->push_back(128);
+        icon.colour.push_back(128);
     }
-*/
+    return icon;
+
 }
 
 std::vector<Vessel> Fleet::vessels;
@@ -160,9 +161,6 @@ Fleet::Fleet(void){
 }
 
 Icon Fleet::NextIcon(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1){
-    //for(unsigned int v=0; v < vessels.size(); ++v){
-        //vessels.at(v).Display(x0, y0, x1, y1, p_data_points, p_data_colour);
-    //}
     Icon icon;
     icon.scale = 0;
     icon.key = 0;

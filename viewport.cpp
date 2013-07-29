@@ -228,7 +228,7 @@ void Display(void){
     sprintf ( Result, "PixelSize: %d m", pixSize );
     renderBitmapString(-0.95, -0.95 + linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
-    sprintf ( Result, "sig_buf: %d %d", Signal_instance._sig_buf_A.size(), Signal_instance._sig_buf_B.size());
+    sprintf ( Result, "sig_buf: %ld %ld", Signal_instance._sig_buf_A.size(), Signal_instance._sig_buf_B.size());
     renderBitmapString(-0.95, -0.95 + 2*linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
     glPopMatrix();

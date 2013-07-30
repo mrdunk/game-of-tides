@@ -63,8 +63,8 @@ struct Vessel {
     std::vector<Spar> spars;        // Contains Spar instances.
 
     unsigned int state;             // See "#define VESSEL_STATE_XXX"
-    unsigned int pos_x;             // Position on map.
-    unsigned int pos_y;
+    int pos_x;             // Position on map.
+    int pos_y;
     float desired_heading;          // Rudder is steering for this direction. (in degrees)
     float heading;                  // Vessel is actuallly pointing in this direction.
     float desired_speed;            
@@ -77,7 +77,7 @@ struct Vessel {
     void Calculate(void);
 
     /* Add the vessel's Icon. */
-    Icon PopulateIcon(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1);
+    Icon PopulateIcon(int x0, int y0, int x1, int y1);
 };
 
 class Fleet {

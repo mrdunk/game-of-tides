@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <GL/gl.h>
+#include <mutex>
 
 #include "signaling.h"
 
@@ -35,15 +36,18 @@ struct Window{
     /* Contains the openGL data for the background. */
     std::vector<GLint>* _p_data_points;
     std::vector<GLubyte>* _p_data_colour;
+    std::mutex data_mutex;
 
     /* Contains the openGL data for the Low Reslution background. (if low_res > 0) */
     int low_res;
     std::vector<GLint>* _p_data_points_low_res;
     std::vector<GLubyte>* _p_data_colour_low_res;
+    std::mutex data_low_res_mutex;
 
     /* Contains the openGL data for the Icon layer. */
-    std::vector<GLfloat>* _p_data_points_icons;
+    std::vector<GLint>* _p_data_points_icons;
     std::vector<GLubyte>* _p_data_colour_icons;
+    std::mutex data_icons_mutex;
 };
 
 extern Window windows[MAX_WINDOWS];
@@ -58,6 +62,7 @@ void _init(int window_index);
 
 void setView(int window_index, int view_x, int view_y, float zoom, int rotation);
 void Resize(int win_width, int win_height);
+int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p_points, std::vector<GLubyte>* _p_colour);
 void Display(void);
 void displayBorder(void);
 void click(int button, int state, int x, int y);
@@ -85,11 +90,11 @@ struct Icon {
     float angle;                    // in degrees.
     float scale;
     bool fixed_size;                // Stay the same size on screen as we zoom in.
-    float centre_x;                 // Point in Icon data to rotate arround and act as centre for poitioning.
-    float centre_y;                 // Point in Icon data to rotate arround and act as centre for poitioning.
-    unsigned int pos_x;                    // Position in Viewport to place Icon.
-    unsigned int pos_y;                    // Position in Viewport to place Icon.
-    std::vector<GLfloat> points;
+    int centre_x;                 // Point in Icon data to rotate arround and act as centre for poitioning.
+    int centre_y;                 // Point in Icon data to rotate arround and act as centre for poitioning.
+    int pos_x;                    // Position in Viewport to place Icon.
+    int pos_y;                    // Position in Viewport to place Icon.
+    std::vector<GLint> points;
     std::vector<GLubyte> colour;
 };
 
@@ -116,12 +121,19 @@ class Viewport : public Signal{
         std::vector<GLint> _data_points;
         std::vector<GLubyte> _data_colour;
 
-        std::vector<GLfloat> _data_points_icons;
+        std::vector<GLint> _data_points_icons;
         std::vector<GLubyte> _data_colour_icons;
 
         std::map<Icon_key, Icon> _icons;
     public:
         void RedrawIcons(void);
+
+        /* Add the Icon struct to the list to be drawn. 
+         * Args: (Icon_key)key: A struct containing the (int)type (as defined by #define ICON_TYPE_XXX)
+         *                      and a unique (int)key.
+         *                      If another icon is added with a matching (Icon_key)key, the original is overwritten.
+         *       (Icon)icon:    A struct containing the icon data.
+         */
         void AddIcon(Icon_key key, Icon icon);
 
         Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height);

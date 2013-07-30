@@ -41,8 +41,8 @@ class Map : public Viewport{
         void Draw(void);
         int DrawSection(Task*, int resolution);
         int DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_progress_x=0, int* p_progress_y=0);
-        void ScrubView(void);
-        void ScrubView(int x0, int y0, int x1, int y1);
+        bool ScrubView(void);
+        bool ScrubView(int x0, int y0, int x1, int y1);
         void ActOnSignal(signal sig);
         bool ProcessTasks(std::vector<Task>* p_task_list);
         GLubyte WaterCol(float height);

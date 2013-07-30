@@ -34,19 +34,19 @@ bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned i
     glutInitWindowSize (width, height);
     glutInitWindowPosition (pos_x, pos_y);
 
-    windows[0] = {windows[0].window = 0, 
-                  windows[0].window_border = 0,
-                  windows[0].pos_x = pos_x, 
-                  windows[0].pos_y = pos_y, 
-                  windows[0].width = width, 
-                  windows[0].height = height, 
-                  windows[0].initialised = 0,
-                  windows[0].dirty = 0,
-                  windows[0].data_size = max(width,height),
-                  windows[0].view_x = 0, 
-                  windows[0].view_y = 0, 
-                  windows[0].zoom = 1, 
-                  windows[0].rotation = 0};
+    windows[0].window = 0; 
+    windows[0].window_border = 0;
+    windows[0].pos_x = pos_x;
+    windows[0].pos_y = pos_y; 
+    windows[0].width = width; 
+    windows[0].height = height;
+    windows[0].initialised = 0;
+    windows[0].dirty = 0;
+    windows[0].data_size = max(width,height);
+    windows[0].view_x = 0;
+    windows[0].view_y = 0;
+    windows[0].zoom = 1;
+    windows[0].rotation = 0;
 
     windows[0].window = glutCreateWindow ("Tides");
     GLenum err=glewInit();
@@ -161,6 +161,38 @@ void Resize(int win_width, int win_height){
     glutPostRedisplay();
 }
 
+int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p_points, std::vector<GLubyte>* p_colour){
+    data_mutex->lock();
+    
+    int VertexCount = p_points->size() / 2;
+    //PositionSize = p_points->size() * sizeof(GLint);
+    //ColorSize = p_colour->size() * sizeof(GLubyte);
+    VertexCount -= VertexCount % 3;
+    GLsizeiptr PositionSize = VertexCount * 2 * sizeof(GLint);
+    GLsizeiptr ColorSize = VertexCount * 3 * sizeof(GLubyte);
+
+    glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
+    glBufferData(GL_ARRAY_BUFFER, ColorSize, &(p_colour->front()), GL_STREAM_DRAW);
+    glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
+    glBufferData(GL_ARRAY_BUFFER, PositionSize, &(p_points->front()), GL_STREAM_DRAW);
+    glVertexPointer(2, GL_INT, 0, 0);
+
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+
+    glDrawArrays(GL_TRIANGLES, 0, VertexCount);
+
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    data_mutex->unlock();
+
+    return VertexCount;
+}
+
 void Display(void){
     //cout << "display " << glutGetWindow() << "\n";
     
@@ -178,56 +210,16 @@ void Display(void){
     if(!windows[window_index]._p_data_colour)
         return;
 
-    GLsizeiptr PositionSize;
     int VertexCount;
-    GLsizeiptr ColorSize;
 
     /* Do low resolution draw in background if enabled. */
     if(windows[window_index].low_res){
-        PositionSize = windows[window_index]._p_data_points_low_res->size() * sizeof(GLint);
-        VertexCount = windows[window_index]._p_data_points_low_res->size() / 2;
-        ColorSize = windows[window_index]._p_data_colour_low_res->size() * sizeof(GLubyte);
-
-        glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
-        glBufferData(GL_ARRAY_BUFFER, ColorSize, &(windows[window_index]._p_data_colour_low_res->front()), GL_STREAM_DRAW);
-        glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
-        glBufferData(GL_ARRAY_BUFFER, PositionSize, &(windows[window_index]._p_data_points_low_res->front()), GL_STREAM_DRAW);
-        glVertexPointer(2, GL_INT, 0, 0);
-
-
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_COLOR_ARRAY);
-
-        glDrawArrays(GL_TRIANGLES, 0, VertexCount);
-
-        glDisableClientState(GL_COLOR_ARRAY);
-        glDisableClientState(GL_VERTEX_ARRAY);
+        VertexCount = LoadVertices(window_index, &windows[window_index].data_low_res_mutex, 
+                               windows[window_index]._p_data_points_low_res, windows[window_index]._p_data_colour_low_res);
     }
 
-    /* Draw regular resolution backgreund. */
-    PositionSize = windows[window_index]._p_data_points->size() * sizeof(GLfloat);
-    VertexCount = windows[window_index]._p_data_points->size() / 2;
-    ColorSize = windows[window_index]._p_data_colour->size() * sizeof(GLubyte);
-
-    glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
-    glBufferData(GL_ARRAY_BUFFER, ColorSize, &(windows[window_index]._p_data_colour->front()), GL_STREAM_DRAW);
-    glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
-    glBufferData(GL_ARRAY_BUFFER, PositionSize, &(windows[window_index]._p_data_points->front()), GL_STREAM_DRAW);
-    glVertexPointer(2, GL_INT, 0, 0);
-
-
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
-    glDrawArrays(GL_TRIANGLES, 0, VertexCount);
-
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-
+    /* Standard esolution. */
+    VertexCount = LoadVertices(window_index, &windows[window_index].data_mutex, windows[window_index]._p_data_points, windows[window_index]._p_data_colour);
 
     /* Text output */
     glPushMatrix();
@@ -247,29 +239,9 @@ void Display(void){
 
     glPopMatrix();
 
-
     /* Draw Icon buffer. */
-    PositionSize = windows[window_index]._p_data_points_icons->size() * sizeof(GLfloat);
-    VertexCount = windows[window_index]._p_data_points_icons->size() / 2;
-    ColorSize = windows[window_index]._p_data_colour_icons->size() * sizeof(GLubyte);
-
-    glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
-    glBufferData(GL_ARRAY_BUFFER, ColorSize, &(windows[window_index]._p_data_colour_icons->front()), GL_STREAM_DRAW);
-    glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
-    glBufferData(GL_ARRAY_BUFFER, PositionSize, &(windows[window_index]._p_data_points_icons->front()), GL_STREAM_DRAW);
-    glVertexPointer(2, GL_FLOAT, 0, 0);
-
-
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
-    glDrawArrays(GL_TRIANGLES, 0, VertexCount);
-
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-
+    VertexCount = LoadVertices(window_index, &windows[window_index].data_icons_mutex, 
+                               windows[window_index]._p_data_points_icons, windows[window_index]._p_data_colour_icons);
 
     //glFlush ();
     glutSwapBuffers();
@@ -505,7 +477,6 @@ void Viewport::ActOnSignal(signal sig){
 
 void Viewport::AddIcon(Icon_key key, Icon icon){
     _icons.insert(pair<Icon_key,Icon>(key,icon));
-    //_icons[key] = icon;
 }
 
 void Viewport::RedrawIcons(void){
@@ -534,12 +505,12 @@ void Viewport::RedrawIcons(void){
 
 Icon Viewport::TestIcon(void){
     Icon icon;
-    icon.points.push_back (0.5f);
-    icon.points.push_back (1.0f);
-    icon.points.push_back (0.6f);
-    icon.points.push_back (0.0f);
-    icon.points.push_back (0.4f);
-    icon.points.push_back (0.0f);
+    icon.points.push_back (5);
+    icon.points.push_back (10);
+    icon.points.push_back (6);
+    icon.points.push_back (0);
+    icon.points.push_back (4);
+    icon.points.push_back (0);
 
     icon.colour.push_back (255);
     icon.colour.push_back (0);
@@ -551,11 +522,11 @@ Icon Viewport::TestIcon(void){
     icon.colour.push_back (0);
     icon.colour.push_back (0);
 
-    icon.angle = 45.0f;
-    icon.scale = 100.0;
+    icon.angle = 0.0f;
+    icon.scale = 10;
     icon.fixed_size = 0;
-    icon.centre_x = 0.5f;
-    icon.centre_y = 0.5f;
+    icon.centre_x = 5;
+    icon.centre_y = 5;
     icon.pos_x = 50;
     icon.pos_y = 50;
 

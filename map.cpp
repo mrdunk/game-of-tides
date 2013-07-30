@@ -49,23 +49,8 @@ void Map::Draw(void){
 }
 
 int Map::DrawSection(Task* p_task, int resolution){
-    float _zoom_holder = _zoom;
-    int _view_x_holder = _view_x;
-    int _view_y_holder = _view_y;
-    _zoom = p_task->zoom;
-    _view_x = p_task->view_x;
-    _view_y = p_task->view_y;
 
-    int retval = DrawSection(p_task->x0, p_task->y0, p_task->x1, p_task->y1, resolution, &(p_task->progress_x), &(p_task->progress_y));
-
-    _zoom = _zoom_holder;
-    _view_x = _view_x_holder;
-    _view_y = _view_y_holder;
-
-    return retval;
-}
-
-int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_progress_x, int* p_progress_y){
+    /* Currently viewed bounding box. */
     int screen_x0, screen_y0, screen_x1, screen_y1;
     if(_width > _height){
         screen_x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
@@ -79,15 +64,44 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
         screen_y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
     }
 
-    if(x0 < screen_x0)
-        x0 = screen_x0;
-    if(x1 > screen_x1)
-        x1 = screen_x1;
-    if(y0 < screen_y0)
-        y0 = screen_y0;
-    if(y1 > screen_y1)
-        y1 = screen_y1;
+    if(p_task->x1 <= screen_x0 or p_task->x0 >= screen_x1 or p_task->y1 <= screen_y0 or p_task->y0 >= screen_y1){
+        cout << "No overlap\n";
+        return 0;
+    }
 
+    if(p_task->x0 < screen_x0)
+        p_task->x0 = screen_x0;
+    if(p_task->x1 > screen_x1)
+        p_task->x1 = screen_x1;
+    if(p_task->y0 < screen_y0)
+        p_task->y0 = screen_y0;
+    if(p_task->y1 > screen_y1)
+        p_task->y1 = screen_y1;
+
+    /* Save current view so we can inherit the ones contained in the task. */
+    float _zoom_holder = _zoom;
+    int _view_x_holder = _view_x;
+    int _view_y_holder = _view_y;
+    _zoom = p_task->zoom;
+    _view_x = p_task->view_x;
+    _view_y = p_task->view_y;
+
+    int retval = DrawSection(p_task->x0, p_task->y0, p_task->x1, p_task->y1, resolution, &(p_task->progress_x), &(p_task->progress_y));
+
+    /* Restore original view. */
+    _zoom = _zoom_holder;
+    _view_x = _view_x_holder;
+    _view_y = _view_y_holder;
+
+    return retval;
+}
+
+int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_progress_x, int* p_progress_y){
+
+if(resolution==1){
+    cout << "x0:   " << x0 << "\ty0:   " << y0 << "\tx1:   " << x1 << "\ty1:   " << y1 << "\n";
+    //cout << "s x0: " << screen_x0 << "\ts y0: " << screen_y0 << "\ts x1: " << screen_x1 << "\ts y1: " << screen_y1 << "\n";
+}
     std::vector<GLint>* _p_data_points;
     std::vector<GLubyte>* _p_data_colour;
     if(resolution == _low_res){
@@ -126,7 +140,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
 
     MapPoint tl, tr, bl, br;
 
-    cout << "Map::DrawSection resolution: " << resolution << "\tx0,y0: " << x0 << " , " << y0 << "\tx1,y1: " << x1 << " , " << y1 << "\tstep_x: " << step_x << "\tstep_y: " << step_y << "\n";
+   //cout << "Map::DrawSection resolution: " << resolution << "\tx0,y0: " << x0 << " , " << y0 << "\tx1,y1: " << x1 << " , " << y1 << "\tstep_x: " << step_x << "\tstep_y: " << step_y << "\n";
     for(int row = y0; row + step_y < y1; row+=step_y){
         if(p_progress_y and *p_progress_y > row){
             continue;
@@ -244,7 +258,7 @@ inline GLubyte Map::WaterCol(float height){
     return (GLubyte)(255 - (float)(data.Waterlevel() - height) * z_multiplier_wet);
 }
 
-void Map::ScrubView(void){
+bool Map::ScrubView(void){
     int x0, y0, x1, y1;
     if(_width > _height){
         x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
@@ -257,10 +271,10 @@ void Map::ScrubView(void){
         y0 = -_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
         y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
     }
-    ScrubView(x0, y0, x1, y1);
+    return ScrubView(x0, y0, x1, y1);
 }
 
-void Map::ScrubView(int x0, int y0, int x1, int y1){
+bool Map::ScrubView(int x0, int y0, int x1, int y1){
 
     std::vector<GLint> _data_points_tmp;
     std::vector<GLubyte> _data_colour_tmp;
@@ -272,12 +286,15 @@ void Map::ScrubView(int x0, int y0, int x1, int y1){
     std::vector<GLint>::iterator data_low_res_it = _data_points_low_res.begin();
     std::vector<GLubyte>::iterator colour_low_res_it = _data_colour_low_res.begin();
 
+    /* The data size of a screen pixel. Use this to leave a small overlap in place. */
+    int pix_size = max((x1 - x0),(y1 - y0))/min(_width,_height);
+
     float x[6], y[6], z[18];
     for (unsigned int i = 0; i < _data_points.size() / 12; ++i){
         int retval = TestInterupt(SIG_DEST_MAP);
         if(retval){
             cout << "INTERUPT 2!\n";
-            return;
+            return (bool)retval;
         }
         for(unsigned int d = 0; d < 6; ++d){
             x[d] = *data_it;
@@ -290,7 +307,7 @@ void Map::ScrubView(int x0, int y0, int x1, int y1){
             ++colour_it;
         }
 
-        if(x[0] >= x0 and x[2] <= x1 and y[0] >= y0 and y[1] <= y1){
+        if(x[1] >= x0 - pix_size and x[0] <= x1 + pix_size and y[2] >= y0 - pix_size and y[0] <= y1 + pix_size){
             for(unsigned int d = 0; d < 6; ++d){
                 _data_points_tmp.push_back(x[d]);
                 _data_points_tmp.push_back(y[d]);
@@ -300,10 +317,18 @@ void Map::ScrubView(int x0, int y0, int x1, int y1){
             }
         }
     }
-    _data_points.swap(_data_points_tmp);                                                                                                                                       _data_colour.swap(_data_colour_tmp);
+    windows[_window_index].data_mutex.lock();
+    _data_points.swap(_data_points_tmp);
+    _data_colour.swap(_data_colour_tmp);
+    windows[_window_index].data_mutex.unlock();
 
     if(_low_res){
         for (unsigned int i = 0; i < _data_points_low_res.size() / 12; ++i){
+            int retval = TestInterupt(SIG_DEST_MAP);
+            if(retval){
+                cout << "INTERUPT 3!\n";
+                return (bool)retval;
+            }
             for(unsigned int d = 0; d < 6; ++d){
                 x[d] = *data_low_res_it;
                 ++data_low_res_it;
@@ -315,7 +340,8 @@ void Map::ScrubView(int x0, int y0, int x1, int y1){
                 ++colour_low_res_it;
             }
 
-            if(x[0] >= x0 and x[2] <= x1 and y[0] >= y0 and y[1] <= y1){
+            if(x[1] >= x0 - pix_size*LOW_RESOLUTION and x[0] <= x1 + pix_size*LOW_RESOLUTION and 
+                        y[2] >= y0 - pix_size*LOW_RESOLUTION and y[0] <= y1 + pix_size*LOW_RESOLUTION){
                 for(unsigned int d = 0; d < 6; ++d){
                     _data_points_low_res_tmp.push_back(x[d]);
                     _data_points_low_res_tmp.push_back(y[d]);
@@ -325,9 +351,12 @@ void Map::ScrubView(int x0, int y0, int x1, int y1){
                 }
             }
         }
+        windows[_window_index].data_low_res_mutex.lock();
         _data_points_low_res.swap(_data_points_low_res_tmp);
         _data_colour_low_res.swap(_data_colour_low_res_tmp);
+        windows[_window_index].data_low_res_mutex.unlock();
     }
+    return 0;
 }
 
 void Map::ActOnSignal(signal sig){
@@ -391,29 +420,32 @@ void Map::ActOnSignal(signal sig){
         task.progress_x = 0;
         task.progress_y = 0;
 
+        /* For adding a 1px overlap. */
+        int pix_size = 2 * max((task.x1-task.x0),(task.y1-task.y0)) / min(_width,_height);
+
         if(store_view_x > _view_x){
-            task.x0 = task.x1 -1;
+            task.x0 = task.x1 - pix_size;
             if(_width > _height){
                 task.x1 = -_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
             } else {
                 task.x1 = -_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
             }
         } else if(store_view_x < _view_x){
-            task.x1 = task.x0 +1;
+            task.x1 = task.x0 + pix_size;
             if(_width > _height){
                 task.x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
             } else {
                 task.x0 = -_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
             }
         } else if(store_view_y > _view_y){
-            task.y0 = task.y1 -1;
+            task.y0 = task.y1 - pix_size;
             if(_width > _height){
                 task.y1 = -_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
             } else {
                 task.y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
             }
         } else if(store_view_y < _view_y){
-            task.y1 = task.y0 +1;
+            task.y1 = task.y0 + pix_size;
             if(_width > _height){
                 task.y0 = -_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
             } else {
@@ -427,12 +459,10 @@ void Map::ActOnSignal(signal sig){
         if(_low_res)
             _task_list_low_res.push_back (task);
 
-        //RedrawIcons();
-        //ScrubView();
-        
-        if(!ProcessTasks(&_task_list_low_res)){
-            ScrubView();
-            ProcessTasks(&_task_list);
+        if(!ProcessTasks(&_task_list_low_res)){     // Draw low-res as highest priority.
+            if(!ScrubView()){                       // If that completes without being interupted, remove any data that has panned off the screen.
+                ProcessTasks(&_task_list);              // Then draw high-res.
+            }
         }
     }
 }

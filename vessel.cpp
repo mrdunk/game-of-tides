@@ -7,7 +7,7 @@ using namespace std;
 void Vessel::Calculate(void){
 }
 
-Icon Vessel::PopulateIcon(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1){
+Icon Vessel::PopulateIcon(int x0, int y0, int x1, int y1){
     Icon icon;
     
     if(!(pos_x >= x0 and pos_x <= x1 and pos_y >= y0 and pos_y <= y1)){
@@ -18,20 +18,22 @@ Icon Vessel::PopulateIcon(unsigned int x0, unsigned int y0, unsigned int x1, uns
     }
     cout << "Vessel \"" << description << "\"\n";
 
-    icon.angle = 0.0f;
-    icon.scale = (float)16/100;     // 10 == pow(2, MIN_RECURSION), 100 == all vessel dimensions are specified in cm.
+    icon.angle = heading;
+    icon.scale = (float)16/100;     // 16 == pow(2, MIN_RECURSION), 100 == all vessel dimensions are specified in cm.
+    //icon.scale = 1000;
     icon.fixed_size = 0;
-    icon.centre_x = 0.5f;
-    icon.centre_y = 0.5f;
-    icon.pos_x = (float)pos_x / MAX_SIZE;
-    icon.pos_y = (float)pos_y / MAX_SIZE;
-/*
-    icon.points.push_back (0.5f);
-    icon.points.push_back (1.0f);
-    icon.points.push_back (0.6f);
-    icon.points.push_back (0.0f);
-    icon.points.push_back (0.4f);
-    icon.points.push_back (0.0f);
+    icon.centre_x = 0;
+    icon.centre_y = 0;
+    icon.pos_x = MAX_SIZE /2;
+    icon.pos_y = MAX_SIZE /2;
+    
+    /*
+    icon.points.push_back (0);
+    icon.points.push_back (1000);
+    icon.points.push_back (100);
+    icon.points.push_back (0);
+    icon.points.push_back (-100);
+    icon.points.push_back (0);
 
     icon.colour.push_back (255);
     icon.colour.push_back (255);
@@ -43,47 +45,47 @@ Icon Vessel::PopulateIcon(unsigned int x0, unsigned int y0, unsigned int x1, uns
     icon.colour.push_back (255);
     icon.colour.push_back (0);
 
-    return icon;
-*/
+    return icon;*/
+
     int bowsprit = 0;
     int size = length;
 
-    icon.points.push_back((float)(pos_x) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
+    icon.points.push_back(0);
+    icon.points.push_back((size/2) - bowsprit);
+    icon.points.push_back(-(int)beam/2);
+    icon.points.push_back((size/2) - bowsprit - (length/3));
+    icon.points.push_back(beam/2);
+    icon.points.push_back((size/2) - bowsprit - (length/3));
 
-    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
-
-
-    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (length/3)) / MAX_SIZE);
+    icon.points.push_back( -(int)beam/2);
+    icon.points.push_back((size/2) - bowsprit - (length/3));
+    icon.points.push_back( -(int)beam/2);
+    icon.points.push_back((size/2) - bowsprit - (2*length/3));
+    icon.points.push_back(beam/2);
+    icon.points.push_back((size/2) - bowsprit - (length/3));
 
 
-    icon.points.push_back((float)(pos_x - beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x - beam/4) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y - size/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
+    icon.points.push_back(-(int)beam/2);
+    icon.points.push_back((size/2) - bowsprit - (2*length/3));
+    icon.points.push_back(beam/2);
+    icon.points.push_back((size/2) - bowsprit - (2*length/3));
+    icon.points.push_back(beam/2);
+    icon.points.push_back((size/2) - bowsprit - (length/3));
 
-    icon.points.push_back((float)(pos_x + beam/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y + (size/2) - bowsprit - (2*length/3)) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x - beam/4) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y - size/2) / MAX_SIZE);
-    icon.points.push_back((float)(pos_x + beam/4) / MAX_SIZE);
-    icon.points.push_back((float)(pos_y - size/2) / MAX_SIZE);
+
+    icon.points.push_back(-(int)beam/2);
+    icon.points.push_back((size/2) - bowsprit - (2*length/3));
+    icon.points.push_back(-(int)beam/4);
+    icon.points.push_back(-size/2);
+    icon.points.push_back(beam/2);
+    icon.points.push_back((size/2) - bowsprit - (2*length/3));
+
+    icon.points.push_back(beam/2);
+    icon.points.push_back((size/2) - bowsprit - (2*length/3));
+    icon.points.push_back(-(int)beam/4);
+    icon.points.push_back(-size/2);
+    icon.points.push_back(beam/4);
+    icon.points.push_back(-size/2);
 
     for(int i = 0; i < 15 * 3; i++){
         icon.colour.push_back(128);

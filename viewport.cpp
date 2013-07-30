@@ -9,6 +9,7 @@
 #include <sstream>
 #include <vector>
 #include <math.h>       /* sin */
+#include <algorithm>    // std::max
 
 #define PI 3.14159265
 
@@ -25,7 +26,7 @@ Window windows[MAX_WINDOWS];
 /* Instance of Signal handler for the non C++ openGL code to use. */
 Signal Signal_instance;
 
-bool Init(int pos_x, int pos_y, int width, int height, int argc, char** argv){
+bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height, int argc, char** argv){
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
     //glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
@@ -33,11 +34,19 @@ bool Init(int pos_x, int pos_y, int width, int height, int argc, char** argv){
     glutInitWindowSize (width, height);
     glutInitWindowPosition (pos_x, pos_y);
 
-    windows[0] = {windows[0].window = 0, windows[0].window_border = 0,
-                  windows[0].pos_x = pos_x, windows[0].pos_y = pos_y, 
-                  windows[0].width = width, windows[0].height = height, windows[0].initialised = 0,
-                  windows[0].dirty = 0, windows[0].view_x = 0, windows[0].view_y = 0, 
-                  windows[0].zoom = 1, windows[0].rotation = 0};
+    windows[0] = {windows[0].window = 0, 
+                  windows[0].window_border = 0,
+                  windows[0].pos_x = pos_x, 
+                  windows[0].pos_y = pos_y, 
+                  windows[0].width = width, 
+                  windows[0].height = height, 
+                  windows[0].initialised = 0,
+                  windows[0].dirty = 0,
+                  windows[0].data_size = max(width,height),
+                  windows[0].view_x = 0, 
+                  windows[0].view_y = 0, 
+                  windows[0].zoom = 1, 
+                  windows[0].rotation = 0};
 
     windows[0].window = glutCreateWindow ("Tides");
     GLenum err=glewInit();
@@ -107,9 +116,11 @@ void _init(int window_index){
     setView(window_index, windows[window_index].view_x, windows[window_index].view_y, windows[window_index].zoom, windows[window_index].rotation);
 }
 
-void setView(int window_index, float view_x, float view_y, float zoom, int rotation){
+void setView(int window_index, int view_x, int view_y, float zoom, int rotation){
     float scale_x = 1.0f, scale_y = 1.0f;
+    
     if(windows[window_index].width == windows[window_index].height){
+    
     } else if(windows[window_index].width > windows[window_index].height){
         scale_x = (float)windows[window_index].width / windows[window_index].height;
     } else {
@@ -132,12 +143,14 @@ void setView(int window_index, float view_x, float view_y, float zoom, int rotat
     //glPushMatrix();
     glLoadIdentity();
     glScalef(zoom, zoom, 1);
-    gluOrtho2D(0.5f - (0.5f * scale_x), 0.5f + (0.5f * scale_x), 0.5f - (0.5f * scale_y), 0.5f + (0.5f * scale_y));
-    glTranslatef(0.5, 0.5, 0.0);
+    gluOrtho2D(0, windows[window_index].data_size * scale_x, 0, windows[window_index].data_size * scale_y); 
+              
+    int w = windows[window_index].data_size * scale_x / 2, h = windows[window_index].data_size * scale_y /2;
+    glTranslated(w, h, 0.0);
     glRotatef(-rotation, 0.0, 0.0, 1.0);
-    glTranslatef(-0.5, -0.5, 0.0);
+    glTranslated(-min(w,h), -min(w,h), 0.0);        // use min(w,h) here to centre data on the square part of a rectangle.
 
-    glTranslatef(view_x, view_y, 0.0);
+    glTranslated(view_x, view_y, 0.0);
 }
 
 void Resize(int win_width, int win_height){
@@ -171,7 +184,7 @@ void Display(void){
 
     /* Do low resolution draw in background if enabled. */
     if(windows[window_index].low_res){
-        PositionSize = windows[window_index]._p_data_points_low_res->size() * sizeof(GLfloat);
+        PositionSize = windows[window_index]._p_data_points_low_res->size() * sizeof(GLint);
         VertexCount = windows[window_index]._p_data_points_low_res->size() / 2;
         ColorSize = windows[window_index]._p_data_colour_low_res->size() * sizeof(GLubyte);
 
@@ -181,7 +194,7 @@ void Display(void){
 
         glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
         glBufferData(GL_ARRAY_BUFFER, PositionSize, &(windows[window_index]._p_data_points_low_res->front()), GL_STREAM_DRAW);
-        glVertexPointer(2, GL_FLOAT, 0, 0);
+        glVertexPointer(2, GL_INT, 0, 0);
 
 
         glEnableClientState(GL_VERTEX_ARRAY);
@@ -204,7 +217,7 @@ void Display(void){
 
     glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
     glBufferData(GL_ARRAY_BUFFER, PositionSize, &(windows[window_index]._p_data_points->front()), GL_STREAM_DRAW);
-    glVertexPointer(2, GL_FLOAT, 0, 0);
+    glVertexPointer(2, GL_INT, 0, 0);
 
 
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -217,19 +230,20 @@ void Display(void){
 
 
     /* Text output */
-    float linespace = 2.0f * 15 / windows[window_index].height;
     glPushMatrix();
     glLoadIdentity();       // load default matrix
+    gluOrtho2D(0, windows[window_index].width, 0, windows[window_index].height);
+
     char Result[64];
     sprintf ( Result, "Triangles: %d", VertexCount / 3 );
-    renderBitmapString(-0.95, -0.95, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+    renderBitmapString(10, 10, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
     int pixSize = MAX_SIZE / (windows[window_index].width * windows[window_index].zoom * MIN_RECURSION);
     sprintf ( Result, "PixelSize: %d m", pixSize );
-    renderBitmapString(-0.95, -0.95 + linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+    renderBitmapString(10, 20, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
     sprintf ( Result, "sig_buf: %ld %ld", Signal_instance._sig_buf_A.size(), Signal_instance._sig_buf_B.size());
-    renderBitmapString(-0.95, -0.95 + 2*linespace, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+    renderBitmapString(10, 30, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
     glPopMatrix();
 
@@ -362,7 +376,7 @@ void refreshChildWindows(void){
     }
 }
 
-void renderBitmapString(float x, float y, void *font, char *string) {
+void renderBitmapString(unsigned int x, unsigned int y, void *font, char *string) {
 
     char *c;
     glRasterPos2f(x, y);
@@ -371,7 +385,7 @@ void renderBitmapString(float x, float y, void *font, char *string) {
     }
 }
 
-Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int height){
+Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height){
     cout << "Viewport::Viewport\n" << flush;
     _label = label;
     RegisterEndpoint(_label, this);
@@ -390,6 +404,7 @@ Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int heig
             windows[i].height = height - 2*BORDERWIDTH;
             windows[i].initialised = 0;
             windows[i].dirty = 1;
+            windows[i].data_size = 200;
             windows[i].view_x = 0;
             windows[i].view_y = 0;
             windows[i].zoom = 1;
@@ -404,6 +419,7 @@ Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int heig
             _pos_y = pos_y;
             _width = width;
             _height = height;
+            _data_size = 200;
             _view_x = 0;
             _view_y = 0;
             _zoom = 1;
@@ -418,7 +434,7 @@ Viewport::Viewport(unsigned int label, int pos_x, int pos_y, int width, int heig
     cout << "Viewport::Viewport -\n" << flush;
 }
 
-void Viewport::SetView(float view_x, float view_y, float zoom, int rotation){
+void Viewport::SetView(int view_x, int view_y, float zoom, int rotation){
     cout << "Viewport::SetView " << _window_index << "\n" << flush;
     _view_x = view_x;
     _view_y = view_y;
@@ -432,32 +448,26 @@ void Viewport::SetView(float view_x, float view_y, float zoom, int rotation){
 }
 
 void Viewport::Draw(void){
-    int size;
-    if(windows[_window_index].height > windows[_window_index].width)
-        size = windows[_window_index].width / 20;
-    else
-        size = windows[_window_index].height / 20;
-    //size = 4;
-    cout << "size: " << _window_index << " " << size << "\n";
-    size = abs(size);
-    int rows = (int)size, cols = (int)size;
-    //int rows = 8, cols = 8;
+    int SQUARE_SIZE = 20;
+    windows[_window_index].data_size = _data_size = 10 * SQUARE_SIZE;
+
     _data_points.clear();
     _data_colour.clear();
-    float row, col;
-    for(row = 0; row < 1; row += 1.0f/rows){
-        for(col = 0; col < 1; col += 1.0f/cols){
+    
+    unsigned int row, col;
+    for(row = 0; row < _data_size; row += SQUARE_SIZE){
+        for(col = 0; col < _data_size; col += SQUARE_SIZE){
             //cout << col << "\t" << row << "\t" << col + 1.0f/num_squares << "\t" << row + 1.0f/num_squares << "\n";
             _data_points.push_back (col);
             _data_points.push_back (row);
-            _data_points.push_back (col + 1.0f/cols);
+            _data_points.push_back (col + SQUARE_SIZE);
             _data_points.push_back (row);
-            _data_points.push_back (col + 1.0f/cols);
-            _data_points.push_back (row + 1.0f/rows);
-            _data_points.push_back (col + 1.0f/cols);
-            _data_points.push_back (row + 1.0f/rows);
+            _data_points.push_back (col + SQUARE_SIZE);
+            _data_points.push_back (row + SQUARE_SIZE);
+            _data_points.push_back (col + SQUARE_SIZE);
+            _data_points.push_back (row + SQUARE_SIZE);
             _data_points.push_back (col);
-            _data_points.push_back (row + 1.0f/rows);
+            _data_points.push_back (row + SQUARE_SIZE);
             _data_points.push_back (col);
             _data_points.push_back (row);
 
@@ -481,24 +491,6 @@ void Viewport::Draw(void){
             _data_colour.push_back (255);
         }
     }
-    //cout << "\n";
-    _data_points.push_back (0.5f);
-    _data_points.push_back (1.0f);
-    _data_points.push_back (0.6f);
-    _data_points.push_back (0.0f);
-    _data_points.push_back (0.4f);
-    _data_points.push_back (0.0f);
-
-    _data_colour.push_back (255);
-    _data_colour.push_back (0);
-    _data_colour.push_back (0);
-    _data_colour.push_back (255);
-    _data_colour.push_back (0);
-    _data_colour.push_back (0);
-    _data_colour.push_back (255);
-    _data_colour.push_back (0);
-    _data_colour.push_back (0);
-
 }
 
 void Viewport::Clear(void){
@@ -559,13 +551,13 @@ Icon Viewport::TestIcon(void){
     icon.colour.push_back (0);
     icon.colour.push_back (0);
 
-    icon.angle = -135.0f;
-    icon.scale = 0.05f;
+    icon.angle = 45.0f;
+    icon.scale = 100.0;
     icon.fixed_size = 0;
     icon.centre_x = 0.5f;
     icon.centre_y = 0.5f;
-    icon.pos_x = 0.25f;
-    icon.pos_y = 0.5f;
+    icon.pos_x = 50;
+    icon.pos_y = 50;
 
     return icon;
 }

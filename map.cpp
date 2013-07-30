@@ -66,6 +66,28 @@ int Map::DrawSection(Task* p_task, int resolution){
 }
 
 int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_progress_x, int* p_progress_y){
+    int screen_x0, screen_y0, screen_x1, screen_y1;
+    if(_width > _height){
+        screen_x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+        screen_x1 = -_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+        screen_y0 = -_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+        screen_y1 = -_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+    } else {
+        screen_x0 = -_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+        screen_x1 = -_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+        screen_y0 = -_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+        screen_y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+    }
+
+    if(x0 < screen_x0)
+        x0 = screen_x0;
+    if(x1 > screen_x1)
+        x1 = screen_x1;
+    if(y0 < screen_y0)
+        y0 = screen_y0;
+    if(y1 > screen_y1)
+        y1 = screen_y1;
+
     std::vector<GLint>* _p_data_points;
     std::vector<GLubyte>* _p_data_colour;
     if(resolution == _low_res){
@@ -79,8 +101,8 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
     /* step size will always be a power of 2.
      * This is important to ensure the display pixels coincide with the data structure recursion levels
      * which means un-necesary recursion through the datastructure need not occur. */
-    int step_x = MAX_SIZE / (int)pow(2, (int)log2(_width * _zoom));
-    int step_y = MAX_SIZE / (int)pow(2, (int)log2(_height * _zoom));
+    int step_x = MAX_SIZE / (long int)pow(2, (int)log2((long int)_width * _zoom));
+    int step_y = MAX_SIZE / (long int)pow(2, (int)log2((long int)_height * _zoom));
     step_x *= resolution;
     step_y *= resolution;
 
@@ -89,26 +111,22 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
     y0 -= (y0 % step_y);
     if(x0 < 0){
         x0 = 0;
-        cout << "!!!!!!!!! <\n";
     }
     if(y0 < 0){
         y0 = 0;
-        cout << "!!!!!!!!! <\n";
     }
     if(x0 >= MAX_SIZE){
         x0 = MAX_SIZE-1;
-        cout << "!!!!!!!!! >\n";
     }
     if(y0 >= MAX_SIZE){
         y0 = MAX_SIZE-1;
-        cout << "!!!!!!!!! >\n";
     } 
 
     float z_multiplier_dry = 255.0f / (data.Height_z_max() - data.Waterlevel());
 
     MapPoint tl, tr, bl, br;
 
-    cout << "Map::DrawSection x0,y0: " << x0 << " , " << y0 << "\tx1,y1: " << x1 << " , " << y1 << "\tstep_x: " << step_x << "\tstep_y: " << step_y << "\n";
+    cout << "Map::DrawSection resolution: " << resolution << "\tx0,y0: " << x0 << " , " << y0 << "\tx1,y1: " << x1 << " , " << y1 << "\tstep_x: " << step_x << "\tstep_y: " << step_y << "\n";
     for(int row = y0; row + step_y < y1; row+=step_y){
         if(p_progress_y and *p_progress_y > row){
             continue;
@@ -374,13 +392,33 @@ void Map::ActOnSignal(signal sig){
         task.progress_y = 0;
 
         if(store_view_x > _view_x){
-            task.x0 = task.x1 - KEY_MOVMENT;
+            task.x0 = task.x1 -1;
+            if(_width > _height){
+                task.x1 = -_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+            } else {
+                task.x1 = -_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+            }
         } else if(store_view_x < _view_x){
-            task.x1 = task.x0 + KEY_MOVMENT;
+            task.x1 = task.x0 +1;
+            if(_width > _height){
+                task.x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+            } else {
+                task.x0 = -_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+            }
         } else if(store_view_y > _view_y){
-            task.y0 = task.y1 - KEY_MOVMENT;
+            task.y0 = task.y1 -1;
+            if(_width > _height){
+                task.y1 = -_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+            } else {
+                task.y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+            }
         } else if(store_view_y < _view_y){
-            task.y1 = task.y0 + KEY_MOVMENT;
+            task.y1 = task.y0 +1;
+            if(_width > _height){
+                task.y0 = -_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+            } else {
+                task.y0 = -_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+            }
         }
 
 
@@ -406,6 +444,7 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
         resolution = _low_res;
     }
 
+    cout << "Map::ProcessTasks " << resolution << " " << p_task_list->size() << "\n";
     RedrawIcons();
 
     for(std::vector<Task>::iterator it = p_task_list->begin() ; it != p_task_list->end(); ++it){

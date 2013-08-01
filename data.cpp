@@ -293,8 +293,8 @@ Data::Data(void){
 }
 
 void Data::Cull(void){
-    cout << mapData.size() << "\t";
-    int counter;
+    //cout << mapData.size() << "\t";
+    //int counter;
     std::unordered_map<std::string, MapPoint>::const_iterator it;
     int count;
     std::string key;
@@ -306,13 +306,13 @@ void Data::Cull(void){
             it = mapData.begin();
         count = 0;
         while(++count < 10){        // Check 10 at a time as 1us above is a little too slow.
-            counter = it->second.counter;
+            //counter = it->second.counter;
             if((int)it->second.last_accesed < (int)it->second.counter - MAX_DATA_SIZE){
                 mapData.erase(it);
             }
             if(++it == mapData.end()){
                 g_mapData_lock.unlock();
-                cout << mapData.size() << "\t" << counter << "\n";
+                //cout << mapData.size() << "\t" << counter << "\n";
                 return;
             }
         }

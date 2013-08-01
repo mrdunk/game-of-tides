@@ -98,18 +98,44 @@ int Map::DrawSection(Task* p_task, int resolution){
 
 int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_progress_x, int* p_progress_y){
 
-if(resolution==1){
-    cout << "x0:   " << x0 << "\ty0:   " << y0 << "\tx1:   " << x1 << "\ty1:   " << y1 << "\n";
-    //cout << "s x0: " << screen_x0 << "\ts y0: " << screen_y0 << "\ts x1: " << screen_x1 << "\ts y1: " << screen_y1 << "\n";
-}
+    if(resolution==1){
+        cout << "x0:   " << x0 << "\ty0:   " << y0 << "\tx1:   " << x1 << "\ty1:   " << y1 << "\n";
+        //cout << "s x0: " << screen_x0 << "\ts y0: " << screen_y0 << "\ts x1: " << screen_x1 << "\ts y1: " << screen_y1 << "\n";
+    }
+
+    /* Must reserve more space in the vertex here because if it re-pages when openGL i reading from it later it causes openGL crash on some platforms. */
+    std::mutex* _p_data_mutex;
     std::vector<GLint>* _p_data_points;
     std::vector<GLubyte>* _p_data_colour;
     if(resolution == _low_res){
+        _p_data_mutex = &windows[_window_index].data_low_res_mutex;
         _p_data_points = &_data_points_low_res;
         _p_data_colour = &_data_colour_low_res;
     } else {
+        _p_data_mutex = &windows[_window_index].data_mutex;
         _p_data_points = &_data_points;
         _p_data_colour = &_data_colour;
+        cout << _data_points.capacity() << "\t" << _data_points.size() << '\n';
+    }
+    if(_p_data_points->capacity() < 2000000){
+        _p_data_mutex->lock();
+        _p_data_points->reserve(2000000);
+        _p_data_mutex->unlock();
+    }
+    if(_p_data_colour->capacity() < 3000000){
+        _p_data_mutex->lock();
+        _p_data_points->reserve(3000000);
+        _p_data_mutex->unlock();
+    }
+    if(_p_data_points->capacity() < _p_data_points->size() * 2){    // TODO * 2 is excessie here. use a more sensible scheme once we know it works.
+        _p_data_mutex->lock();
+        _p_data_points->reserve(_p_data_points->size() * 2);
+        _p_data_mutex->unlock();
+    }
+    if(_p_data_colour->capacity() < _p_data_colour->size() * 2){
+        _p_data_mutex->lock();
+        _p_data_colour->reserve(_p_data_colour->size() * 2);
+        _p_data_mutex->unlock();
     }
 
     /* step size will always be a power of 2.

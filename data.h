@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <unordered_map>
+#include <mutex>
 
 #define MAX_RECURSION 24
 #define MIN_RECURSION 4
@@ -12,6 +13,9 @@
 #define GAME_NUMBER 1234568
 #define SEED .15
 #define LANDMASS .2
+#define MAX_DATA_SIZE 2000000
+
+extern std::mutex g_mapData_lock;
 
 /* http://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
  *
@@ -77,6 +81,9 @@ class Data{
         unsigned int Height_z_min(void){return height_z_min;};
         unsigned int Height_z_max(void){return height_z_max;};
         unsigned int Waterlevel(void){return waterlevel;};
+
+        /* Remove old entries from mapData. */
+        void Cull(void);
 };
 
 

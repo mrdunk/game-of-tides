@@ -23,11 +23,20 @@ void task1(string msg)
     }
 }
 
+void housekeeping(void){
+    Data data;
+    while(true){
+        usleep(1000000);
+        data.Cull();
+    }
+}
+
 int main(int argc, char** argv)
 {
 
     thread canvas(Init,800,0,800,800,argc,argv);
     thread t(task1, "World");
+    thread t2(housekeeping);
 
     Viewport testViewport(SIG_DEST_TEST, 0, 0, 400, 400);
     Viewport testViewport2(SIG_DEST_TEST, 400, 0, 400, 200);

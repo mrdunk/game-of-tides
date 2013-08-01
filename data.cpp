@@ -6,6 +6,7 @@
 
 using namespace std;
 
+std::mutex g_mapData_lock;
 //std::unordered_map<std::string, MapPoint> mapData;
 
 std::string Coordinate::toString(){
@@ -118,12 +119,16 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
         // already have the data in buffer.
         z = got->second.z;
         
-        last_accesed = ++counter;
+        last_accesed = counter;
         std::pair<std::string, MapPoint> entry(key, *this);
+        g_mapData_lock.lock();
         mapData->insert(entry);
+        g_mapData_lock.unlock();
 
         return;
     }
+
+    /* New entry. */
    
     if(!x and !y){
         // 0,0 point.
@@ -201,8 +206,11 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 
     last_accesed = ++counter;
     std::pair<std::string, MapPoint> entry(key, *this);
+    g_mapData_lock.lock();
     mapData->insert(entry);
+    g_mapData_lock.unlock();
 
+    //cout << counter << "\t" << mapData->size() <<"\n";
     //cout << "MapPoint::calculateZ -\n";
 }
 
@@ -283,3 +291,34 @@ Data::Data(void){
     cout << "Data::Data height_z_max: " << height_z_max << "\theight_z_min: " << height_z_min << "\twaterlevel: " << waterlevel << "\n";
     //testcoord.Set_waterlevel(waterlevel);
 }
+
+void Data::Cull(void){
+    cout << mapData.size() << "\t";
+    int counter;
+    std::unordered_map<std::string, MapPoint>::const_iterator it;
+    int count;
+    std::string key;
+    while(1){
+        usleep(1);                  // This delay is to make the thread drawing the screen more likely to aquirethe lock.
+        g_mapData_lock.lock();
+        it = mapData.find(key);
+        if(it == mapData.end())
+            it = mapData.begin();
+        count = 0;
+        while(++count < 10){        // Check 10 at a time as 1us above is a little too slow.
+            counter = it->second.counter;
+            if((int)it->second.last_accesed < (int)it->second.counter - MAX_DATA_SIZE){
+                mapData.erase(it);
+            }
+            if(++it == mapData.end()){
+                g_mapData_lock.unlock();
+                cout << mapData.size() << "\t" << counter << "\n";
+                return;
+            }
+        }
+        key = it->first;
+        g_mapData_lock.unlock();
+    }
+}
+
+

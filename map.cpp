@@ -14,7 +14,7 @@ Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int lo
     _task_list.clear();
     _task_list_low_res.clear();
     _low_res = low_res;
-    windows[_window_index].low_res = low_res;
+    windows[_window_index].low_res = 0;     // Set this to 0 so we don't start displaying low_res layer untill there is data in it.
     windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
     windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
     
@@ -98,10 +98,10 @@ int Map::DrawSection(Task* p_task, int resolution){
 
 int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_progress_x, int* p_progress_y){
 
-    if(resolution==1){
-        cout << "x0:   " << x0 << "\ty0:   " << y0 << "\tx1:   " << x1 << "\ty1:   " << y1 << "\n";
+    //if(resolution==1){
+        //cout << "x0:   " << x0 << "\ty0:   " << y0 << "\tx1:   " << x1 << "\ty1:   " << y1 << "\n";
         //cout << "s x0: " << screen_x0 << "\ts y0: " << screen_y0 << "\ts x1: " << screen_x1 << "\ts y1: " << screen_y1 << "\n";
-    }
+    //}
 
     /* Must reserve more space in the vertex here because if it re-pages when openGL i reading from it later it causes openGL crash on some platforms. */
     std::mutex* _p_data_mutex;
@@ -115,7 +115,6 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
         _p_data_mutex = &windows[_window_index].data_mutex;
         _p_data_points = &_data_points;
         _p_data_colour = &_data_colour;
-        cout << _data_points.capacity() << "\t" << _data_points.size() << '\n';
     }
     if(_p_data_points->capacity() < 2000000){
         _p_data_mutex->lock();
@@ -127,7 +126,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
         _p_data_points->reserve(3000000);
         _p_data_mutex->unlock();
     }
-    if(_p_data_points->capacity() < _p_data_points->size() * 2){    // TODO * 2 is excessie here. use a more sensible scheme once we know it works.
+    if(_p_data_points->capacity() < _p_data_points->size() * 2){    // TODO * 2 is excessive here. use a more sensible scheme once we know it works.
         _p_data_mutex->lock();
         _p_data_points->reserve(_p_data_points->size() * 2);
         _p_data_mutex->unlock();
@@ -227,7 +226,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (0);
             } else {
                 _p_data_colour->push_back (0);
-                _p_data_colour->push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
             _p_data_colour->push_back (0);
             if(bl.z > data.Waterlevel()){
@@ -235,7 +234,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (0);
             } else {
                 _p_data_colour->push_back (0);
-                _p_data_colour->push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
             _p_data_colour->push_back (0);
             if(tr.z > data.Waterlevel()){
@@ -243,7 +242,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (0);
             } else {        
                 _p_data_colour->push_back (0);
-                _p_data_colour->push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
 
             _p_data_colour->push_back (0);
@@ -252,7 +251,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (0);
             } else {        
                 _p_data_colour->push_back (0); 
-                _p_data_colour->push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
             _p_data_colour->push_back (0);
             if(bl.z > data.Waterlevel()){
@@ -260,7 +259,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (0);
             } else {        
                 _p_data_colour->push_back (0);
-                _p_data_colour->push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
             _p_data_colour->push_back (0);
             if(br.z > data.Waterlevel()){
@@ -268,7 +267,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (0);
             } else {        
                 _p_data_colour->push_back (0);
-                _p_data_colour->push_back (WaterCol(bl.z));
+                _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
         }
     }
@@ -279,9 +278,20 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
     return 0;
 }
 
-inline GLubyte Map::WaterCol(float height){
-    const float z_multiplier_wet = _zoom * 255.0f / (data.Waterlevel() - data.Height_z_min());
-    return (GLubyte)(255 - (float)(data.Waterlevel() - height) * z_multiplier_wet);
+inline GLubyte Map::WaterCol(float height, int resolution){
+    //const float z_multiplier_wet = _zoom * 255.0f / (data.Waterlevel() - data.Height_z_min());
+    //return (GLubyte)(255 - (float)(data.Waterlevel() - height) * z_multiplier_wet);
+    
+    const float z_multiplier_wet = 255.0f / (data.Height_z_max() - data.Height_z_min());
+    int rel_height = (float)(height - data.Height_z_min());
+    if(resolution==1){
+        if(rel_height % (int)(MAX_SIZE / (_zoom * 64)) < 3200 / _zoom)
+            return 0;
+    }
+    return rel_height * z_multiplier_wet;
+
+    //const float z_multiplier_wet = 255.0f / (data.Height_z_max() - data.Height_z_min());
+    //return (GLubyte)(z_multiplier_wet * (height - data.Height_z_min()));
 }
 
 bool Map::ScrubView(void){
@@ -366,8 +376,8 @@ bool Map::ScrubView(int x0, int y0, int x1, int y1){
                 ++colour_low_res_it;
             }
 
-            if(x[1] >= x0 - pix_size*LOW_RESOLUTION and x[0] <= x1 + pix_size*LOW_RESOLUTION and 
-                        y[2] >= y0 - pix_size*LOW_RESOLUTION and y[0] <= y1 + pix_size*LOW_RESOLUTION){
+            if(x[1] >= x0 - pix_size * _low_res and x[0] <= x1 + pix_size * _low_res and 
+                        y[2] >= y0 - pix_size * _low_res and y[0] <= y1 + pix_size * _low_res){
                 for(unsigned int d = 0; d < 6; ++d){
                     _data_points_low_res_tmp.push_back(x[d]);
                     _data_points_low_res_tmp.push_back(y[d]);
@@ -485,9 +495,16 @@ void Map::ActOnSignal(signal sig){
         if(_low_res)
             _task_list_low_res.push_back (task);
 
-        if(!ProcessTasks(&_task_list_low_res)){     // Draw low-res as highest priority.
-            if(!ScrubView()){                       // If that completes without being interupted, remove any data that has panned off the screen.
-                ProcessTasks(&_task_list);              // Then draw high-res.
+        windows[_window_index].low_res = _low_res;
+        if(!ProcessTasks(&_task_list_low_res)){             // Draw low-res as highest priority.
+            cout << "L\n";
+            if(!ScrubView()){                               // If that completes without being interupted, remove any data that has panned off the screen.
+                cout << "S\n";
+                if(!ProcessTasks(&_task_list)){              // Then draw high-res.
+                    cout << "H\n";
+                    windows[_window_index].low_res = 0;     // And if that completes, set this to 0 which means the low res background 
+                                                            // does not get drawn in the display thread.
+                }
             }
         }
     }

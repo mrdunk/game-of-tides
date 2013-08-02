@@ -45,7 +45,7 @@ class Map : public Viewport{
         bool ScrubView(int x0, int y0, int x1, int y1);
         void ActOnSignal(signal sig);
         bool ProcessTasks(std::vector<Task>* p_task_list);
-        GLubyte WaterCol(float height);
+        GLubyte WaterCol(float height, int resolution);
 };
 
 

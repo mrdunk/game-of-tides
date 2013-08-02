@@ -172,11 +172,11 @@ int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p
     GLsizeiptr ColorSize = VertexCount * 3 * sizeof(GLubyte);
 
     glBindBuffer(GL_ARRAY_BUFFER, BufferName[COLOR_OBJECT]);
-    glBufferData(GL_ARRAY_BUFFER, ColorSize, &(p_colour->front()), GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, ColorSize, &(p_colour->front()), GL_DYNAMIC_DRAW);
     glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, BufferName[POSITION_OBJECT]);
-    glBufferData(GL_ARRAY_BUFFER, PositionSize, &(p_points->front()), GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, PositionSize, &(p_points->front()), GL_DYNAMIC_DRAW);
     glVertexPointer(2, GL_INT, 0, 0);
 
 
@@ -216,6 +216,7 @@ void Display(void){
     if(windows[window_index].low_res){
         VertexCount = LoadVertices(window_index, &windows[window_index].data_low_res_mutex, 
                                windows[window_index]._p_data_points_low_res, windows[window_index]._p_data_colour_low_res);
+        //cout << "low\n";
     }
 
     /* Standard esolution. */
@@ -234,7 +235,7 @@ void Display(void){
     sprintf ( Result, "PixelSize: %d m", pixSize );
     renderBitmapString(10, 20, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
-    sprintf ( Result, "sig_buf: %ld %ld", Signal_instance._sig_buf_A.size(), Signal_instance._sig_buf_B.size());
+    sprintf ( Result, "_zoom: %lf", windows[window_index].zoom);
     renderBitmapString(10, 30, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
     glPopMatrix();

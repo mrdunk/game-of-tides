@@ -13,30 +13,35 @@
 using namespace std;
 
 
-void task1(string msg)
+void task1(int* shutdown)
 {
     Signal Sig;
     //signal sig;
-    while(true){
+    while(*shutdown == 0){
         usleep(FRAME_LENGTH * 500);
         Sig.ServiceSignals(); 
     }
+    ++(*shutdown);
+    cout << "closing task1\n";
 }
 
-void housekeeping(void){
+void housekeeping(int* shutdown){
     Data data;
-    while(true){
+    while(*shutdown == 0){
         usleep(1000000);
         data.Cull();
     }
+    ++(*shutdown);
+    cout << "closing housekeeping\n";
 }
 
 int main(int argc, char** argv)
 {
+    int shutdown = 0;
 
-    thread canvas(Init,800,0,800,800,argc,argv);
-    thread t(task1, "World");
-    thread t2(housekeeping);
+    thread canvas(Init,800,0,800,800,&shutdown,argc,argv);
+    thread t(task1, &shutdown);
+    thread t2(housekeeping, &shutdown);
 
     Viewport testViewport(SIG_DEST_TEST, 0, 0, 400, 400);
     Viewport testViewport2(SIG_DEST_TEST, 400, 0, 400, 200);
@@ -56,7 +61,10 @@ int main(int argc, char** argv)
     testViewport2.RedrawIcons();
 
     canvas.join();
+    // we never get here because glutMainLoop() has allready close()-ed.
+    ++shutdown;
     t.join();
+    t2.join();
 
     return 0;
 }

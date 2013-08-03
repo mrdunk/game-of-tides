@@ -52,7 +52,10 @@ struct Window{
 
 extern Window windows[MAX_WINDOWS];
 
-bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height, int argc, char** argv);
+/* If this has been incremented, one of the threads is shutting down so do the same to the openGL thread. */
+extern int* p_shutdown_gl;
+
+bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height, int* shutdown, int argc, char** argv);
 
 /* Initialise the currently active window. */
 void _init(void);
@@ -69,6 +72,7 @@ void click(int button, int state, int x, int y);
 void timer(int value);
 void keyboard(unsigned char key, int x, int y);
 void keyboardSecial(int key, int x, int y);
+void _close(void);
 void refreshChildWindows(void);
 void renderBitmapString(unsigned int x, unsigned int y, void *font, char *string);
 

@@ -435,8 +435,8 @@ void Map::ActOnSignal(signal sig){
                 task.type = TASK_TYPE_PAN;
                 break;
         }
-        if(_zoom > 16000)
-            task.zoom = _zoom = 16000;      // TODO base this on MIN_RECURSION
+        if(_zoom > 40000)
+            task.zoom = _zoom = 40000;      // TODO base this on MIN_RECURSION
 
         /* Different aspects depending on whether map is portrait or landscape. */
         if(_width > _height){
@@ -530,12 +530,14 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
             interupt_val = DrawSection(&(*it), resolution);
             // "< SIG_VAL_UP" covers zoom interrupt and no interrupt.
             if(interupt_val < SIG_VAL_UP){
+                // set type to 0 so the task gets removed from task_list.
                 it->type = 0;       // only do this if next keypress will draw whole map.
             }
         } else if(it->type == TASK_TYPE_PAN){
             //ScrubView();
             interupt_val = DrawSection(&(*it), resolution);
             if(interupt_val == 0){
+                // set type to 0 so the task gets removed from task_list.
                 it->type = 0;
             }
         }

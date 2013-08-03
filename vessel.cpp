@@ -48,6 +48,13 @@ Icon Vessel::PopulateIcon(int x0, int y0, int x1, int y1){
     return icon;*/
 
     int bowsprit = 0;
+
+    for(std::vector<Spar>::iterator it = spars.begin() ; it != spars.end(); ++it){
+        if(it->type == SPAR_TYPE_BOWSPRIT){
+            bowsprit = it->length / 2;
+        }
+    }
+
     int size = length;
 
     icon.points.push_back(0);
@@ -90,6 +97,56 @@ Icon Vessel::PopulateIcon(int x0, int y0, int x1, int y1){
     for(int i = 0; i < 15 * 3; i++){
         icon.colour.push_back(128);
     }
+
+    for(std::vector<Spar>::iterator it = spars.begin() ; it != spars.end(); ++it){
+        cout << "SPAR: " << it->type << "\t" << it->length << "\n";
+        if(it->type == SPAR_TYPE_BOWSPRIT){
+            cout << "SPAR_TYPE_BOWSPRIT\n";
+            icon.points.push_back(-(int)it->length/15);
+            icon.points.push_back((size/2) + bowsprit);
+            icon.points.push_back(-(int)it->length/10);
+            icon.points.push_back((size/2) - bowsprit - length/20);
+            icon.points.push_back(it->length/10);
+            icon.points.push_back((size/2) - bowsprit - length/20);
+
+            icon.points.push_back(-(int)it->length/15);
+            icon.points.push_back((size/2) + bowsprit);
+            icon.points.push_back(it->length/10);
+            icon.points.push_back((size/2) - bowsprit - length/20);
+            icon.points.push_back(it->length/15);
+            icon.points.push_back((size/2) + bowsprit);
+
+            for(int i = 0; i < 6; i++){
+                icon.colour.push_back(50);
+                icon.colour.push_back(20);
+                icon.colour.push_back(20);
+            }
+        }
+        else if(it->type == SPAR_TYPE_MAST){
+            cout << "SPAR_TYPE_MAST\n";
+            icon.points.push_back(-(int)it->length/40);
+            icon.points.push_back((size/2) - bowsprit - it->position + it->length/40);
+            icon.points.push_back(-(int)it->length/40);
+            icon.points.push_back((size/2) - bowsprit - it->position - it->length/40);
+            icon.points.push_back(it->length/40);
+            icon.points.push_back((size/2) - bowsprit - it->position + it->length/40);
+
+            icon.points.push_back(-(int)it->length/40);
+            icon.points.push_back((size/2) - bowsprit - it->position - it->length/40);
+            icon.points.push_back(it->length/40);
+            icon.points.push_back((size/2) - bowsprit - it->position - it->length/40);
+            icon.points.push_back(it->length/40);
+            icon.points.push_back((size/2) - bowsprit - it->position + it->length/40);
+
+            for(int i = 0; i < 6; i++){
+                icon.colour.push_back(50);
+                icon.colour.push_back(20);
+                icon.colour.push_back(20);
+            }
+        }
+
+    }
+
     return icon;
 
 }
@@ -118,9 +175,9 @@ Fleet::Fleet(void){
     v0_sp0.length       = 100;
     
     v0_sp1.description  = "";
-    v0_sp0.type         = SPAR_TYPE_MAST;
-    v0_sp0.position     = 300;
-    v0_sp0.length       = 850;
+    v0_sp1.type         = SPAR_TYPE_MAST;
+    v0_sp1.position     = 300;
+    v0_sp1.length       = 850;
 
     v0_sp1_sa0.description      = "";
     v0_sp1_sa0.type             = SAIL_TYPE_FORE;

@@ -26,10 +26,13 @@ Window windows[MAX_WINDOWS];
 /* Instance of Signal handler for the non C++ openGL code to use. */
 Signal Signal_instance;
 
-bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height, int argc, char** argv){
+int* p_shutdown_gl;
+
+bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height, int* _shutdown, int argc, char** argv){
+    p_shutdown_gl = _shutdown;
     glutInit(&argc, argv);
-    glutInitDisplayMode (GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
-    //glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    //glutInitDisplayMode (GLUT_SINGLE | GLUT_RGB);         // glFlush ();
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);            // glutSwapBuffers();
 
     glutInitWindowSize (width, height);
     glutInitWindowPosition (pos_x, pos_y);
@@ -86,13 +89,23 @@ bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned i
     glutTimerFunc(FRAME_LENGTH, timer, 1);
     glutKeyboardFunc(keyboard);
     glutSpecialFunc(keyboardSecial);
+    glutCloseFunc(_close);
     _init();
 
     windows[0].initialised = 1;
 
     glutMainLoop();
 
+    /* will never get here. */
+    ++(*_shutdown);
     return 0;
+}
+
+void _close(void){
+    cout << "close\n";
+    ++(*p_shutdown_gl);      // Set other threads to terminate.
+    while(*p_shutdown_gl < 3);
+    cout << "close 2\n";
 }
 
 void _init(void){
@@ -250,6 +263,7 @@ void Display(void){
 
 void displayBorder(void){
     glClear (GL_COLOR_BUFFER_BIT);
+    glutSwapBuffers();
 }
 
 void click(int button, int state, int x, int y){
@@ -342,6 +356,8 @@ void refreshChildWindows(void){
         }
         if(windows[i].window){
             //cout << " * " << i << " " << windows[i]._p_data_points->size() << "\t" << windows[i]._p_data_colour->size() << "\n";
+            //glutSetWindow(windows[i].window_border);
+            //glutPostRedisplay();
             glutSetWindow(windows[i].window);
             glutPostRedisplay();
         }

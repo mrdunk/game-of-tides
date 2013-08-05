@@ -12,6 +12,8 @@
 #define AIR_DENSITY 1.2
 #define WATER_DENSITY 1000
 
+#define MAST_RATIO              60
+
 #define SAIL_TYPE_FORE          1
 #define SAIL_TYPE_AFT           2
 #define SAIL_TYPE_SQUARE        3
@@ -33,19 +35,22 @@
 
 
 struct Sail {
-    std::string description;             //
+    std::string description;        //
     unsigned int type;              // See "#define SAIL_TYPE_XXX".
     unsigned int tack_height;       // Height of sail's foot above deck.
-    unsigned int tack_position;     // SAIL_TYPE_FORE only: How far the tack is from mast.
+    unsigned int tack_position;     // SAIL_TYPE_FORE only: How far the tack is from mast or front of bowsprit.
     unsigned int height;            // Height of sail.
     unsigned int foot;              // Length of sail's foot
     float reef_size;                // Size of reef points (ratio of whole sail). A sail that cannot be reefed will be 100%.
     float deployed;                 // How much of the sail is hoisted (ratio of whole sail). (Must be a multiple of reef_size.)
-    int sheeted;                    // How far in/out the sail is sheeted.
+    float sheeted;                  // Angle the sail is sheeted to.
+    float min_sheeted;              // Furthest out sail can be sheeted. (Typically 90deg for a mainsail and no limit for a foresail.)
+    float max_sheeted;              // Furthest in sail can be sheeted. (Typically no limit for a mainsail and depends on rigging for a foresail.)
+
 };
 
 struct Spar {
-    std::string description;             //
+    std::string description;        //
     unsigned int type;              // See "#define SPAR_TYPE_XXX".
     unsigned int position;          // Position os Spar from front of boat.
     unsigned int length;            // Length of spar.
@@ -53,7 +58,7 @@ struct Spar {
 };
 
 struct Vessel {
-    std::string description;             //
+    std::string description;        //
     unsigned int type;              // See "#define VESSEL_TYPE_XXX".
     unsigned int length;            // Length of vessel.
     unsigned int beam;              // Beam (width).
@@ -63,8 +68,8 @@ struct Vessel {
     std::vector<Spar> spars;        // Contains Spar instances.
 
     unsigned int state;             // See "#define VESSEL_STATE_XXX"
-    int pos_x;             // Position on map.
-    int pos_y;
+    double pos_x;                      // Position on map.
+    double pos_y;
     float desired_heading;          // Rudder is steering for this direction. (in degrees)
     float heading;                  // Vessel is actuallly pointing in this direction.
     float desired_speed;            
@@ -74,7 +79,7 @@ struct Vessel {
     unsigned int last_updated;      // Time when vessel's current speed and heading were last calculated.
 
     /* Update current speed and heading of the vessel. */
-    void Calculate(void);
+    void Calculate(float wind_speed, float wind_dir);
 
     /* Add the vessel's Icon. */
     Icon PopulateIcon(int x0, int y0, int x1, int y1);
@@ -88,7 +93,7 @@ class Fleet {
         Fleet(void);
 
         /* Update current speed and heading of all vessels. */
-        void CalculateVessels(void);
+        void CalculateVessels(float wind_speed, float wind_dir);
 
         /* Itterate through vessels Icons. */
         Icon NextIcon(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1);

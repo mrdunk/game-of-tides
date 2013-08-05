@@ -8,6 +8,7 @@
 #include "signaling.h"
 #include "data.h"
 #include "map.h"
+#include "vessel.h"
 
 
 using namespace std;
@@ -35,6 +36,21 @@ void housekeeping(int* shutdown){
     cout << "closing housekeeping\n";
 }
 
+void drawBoats(int* shutdown, Map* p_testMap){
+    Fleet vessels;
+    Data data;
+    while(*shutdown == 0){
+        usleep(100000);     // 100ms
+        //usleep(5000000);
+        cout << "tick\n";
+        vessels.CalculateVessels(data.wind_speed, data.wind_dir);
+        p_testMap->DrawBoats();
+        p_testMap->RedrawIcons();
+    }
+    ++(*shutdown);
+    cout << "closing drawBoats\n";
+}
+
 int main(int argc, char** argv)
 {
     int shutdown = 0;
@@ -60,11 +76,14 @@ int main(int argc, char** argv)
     testViewport2.AddIcon(key, icon);
     testViewport2.RedrawIcons();
 
+    thread t3(drawBoats, &shutdown, &testMap);
+
     canvas.join();
     // we never get here because glutMainLoop() has allready close()-ed.
     ++shutdown;
     t.join();
     t2.join();
+    t3.join();
 
     return 0;
 }

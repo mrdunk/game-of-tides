@@ -18,7 +18,9 @@ Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int lo
     windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
     windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
     
-    vessels.StartIcon();
+    vessels.CalculateVessels(data.wind_speed, data.wind_dir);
+
+    /*vessels.StartIcon();
     Icon icon;
     icon.scale = 0;
     icon.key = 1;
@@ -30,7 +32,8 @@ Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int lo
             key.key = icon.key;
             AddIcon(key, icon);
         }
-    }
+    }*/
+    DrawBoats();
 };
 
 void Map::Draw(void){
@@ -551,5 +554,20 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
     return 0;
 }
 
+void Map::DrawBoats(void){
+    vessels.StartIcon();
+    Icon icon;
+    icon.scale = 0;
+    icon.key = 1;
+    while(icon.key != 0){
+        icon = vessels.NextIcon(0,0,MAX_SIZE,MAX_SIZE);
+        if(icon.scale){
+            Icon_key key;
+            key.type = ICON_TYPE_VESSEL;
+            key.key = icon.key;
+            AddIcon(key, icon);
+        }
+    }
 
+}
 

@@ -215,8 +215,8 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 }
 
 
-#define PRIME 1099511628211
-#define OFFSET 14695981039346656037u
+#define PRIME 1099511628211ULL
+#define OFFSET 14695981039346656037ULL
 /* http://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function */
 inline short int jitter(unsigned int size, int salt, int use, unsigned int x,  unsigned int y){
     //std::cout << "Data::jitter\n";
@@ -224,7 +224,7 @@ inline short int jitter(unsigned int size, int salt, int use, unsigned int x,  u
 
     if(!size)
         size = 1;
-    unsigned long hash = OFFSET;
+    unsigned long long hash = OFFSET;
     hash ^= x;
     hash *= PRIME;
     hash ^= salt;
@@ -242,11 +242,16 @@ std::unordered_map<std::string, MapPoint>* Data::p_mapData;
 unsigned int Data::waterlevel = 0;
 unsigned int Data::height_z_min;
 unsigned int Data::height_z_max;
+float Data::wind_speed = 10;
+float Data::wind_dir = 90;
 
 Data::Data(void){
     p_mapData = &mapData;
 
+    while(waterlevel == 1);     // Will block here while any other thread is initialising Data.
+
     if(!waterlevel){
+        waterlevel = 1;
         MapPoint testcoord;
         height_z_max = 0;
         height_z_min = MAX_SIZE;

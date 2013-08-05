@@ -46,6 +46,8 @@ class Map : public Viewport{
         void ActOnSignal(signal sig);
         bool ProcessTasks(std::vector<Task>* p_task_list);
         GLubyte WaterCol(float height, int resolution);
+
+        void DrawBoats(void);
 };
 
 

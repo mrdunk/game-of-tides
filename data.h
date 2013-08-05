@@ -82,6 +82,9 @@ class Data{
         unsigned int Height_z_max(void){return height_z_max;};
         unsigned int Waterlevel(void){return waterlevel;};
 
+        static float wind_speed;
+        static float wind_dir;
+
         /* Remove old entries from mapData. */
         void Cull(void);
 };

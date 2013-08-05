@@ -104,7 +104,7 @@ bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned i
 void _close(void){
     cout << "close\n";
     ++(*p_shutdown_gl);      // Set other threads to terminate.
-    while(*p_shutdown_gl < 3);
+    while(*p_shutdown_gl < ACTIVE_THREADS);
     cout << "close 2\n";
 }
 
@@ -493,7 +493,9 @@ void Viewport::ActOnSignal(signal sig){
 }
 
 void Viewport::AddIcon(Icon_key key, Icon icon){
-    _icons.insert(pair<Icon_key,Icon>(key,icon));
+    //cout << "Viewport::AddIcon         type: " << key.type << "\tkey: " << key.key << "\tpos_x: " << icon.pos_x << "\tpos_y: " << icon.pos_y << "\n";
+    //_icons.insert(pair<Icon_key,Icon>(key,icon));
+    _icons[key] = icon;
 }
 
 void Viewport::RedrawIcons(void){
@@ -502,12 +504,11 @@ void Viewport::RedrawIcons(void){
     _data_points_icons.clear();
     _data_colour_icons.clear();
     for (std::map<Icon_key,Icon>::iterator it=_icons.begin(); it!=_icons.end(); ++it){
-        //cout << "+" << it->second.points.size();
+        //cout << "Viewport::RedrawIcons type: " << it->first.type << "\tkey: " << it->first.key << "\tpos_x: " << it->second.pos_x << "\tpos_y: " << it->second.pos_y << "\n";
         scale = it->second.scale;
         if (it->second.fixed_size == 1)
             scale /= _zoom;
         for(unsigned int p = 0; p < it->second.points.size() / 2; ++p){
-            //cout << ".";
             float x = (it->second.points.at(p * 2   ) - it->second.centre_x) * scale;
             float y = (it->second.points.at(p * 2 +1) - it->second.centre_y) * scale;
             _data_points_icons.push_back(cos(-it->second.angle * PI / 180) * x - sin(-it->second.angle * PI / 180) * y + it->second.pos_x);
@@ -517,7 +518,6 @@ void Viewport::RedrawIcons(void){
             _data_colour_icons.push_back(it->second.colour.at(p * 3 +2));
         }
     }
-    //cout << "\n";
 }
 
 Icon Viewport::TestIcon(void){

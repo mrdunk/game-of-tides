@@ -7,7 +7,7 @@ This should build on any modern Linux system.
 
 Dependencies:
   On my test machine the only dependencies i needed were freeglut:
-  $ sudo apt-get install freeglut3 freeglut3-dev
+  $ sudo apt-get install freeglut3 freeglut3-dev g++ libglew-dev
   
   Plese let me know if you require anything else on your system.
   

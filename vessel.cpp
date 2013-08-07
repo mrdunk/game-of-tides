@@ -8,24 +8,35 @@ using namespace std;
 
 void Vessel::Calculate(float wind_speed, float wind_dir){
     cout << "Vessel::Calculate " << description << "\n";
-
+    
     bool optimise_trim = true;
 
-    float force_leway = 0;
-    float force_forward = 0;
-    float force_heel = 0;
-    float force_rotation = 0;
+    double force_leway = 0;
+    double force_forward = 0;
+    double force_heel = 0;
+    double force_rotation = 0;
 
     /* Calculate relative wind. */
-    float wind_dir_x = wind_speed * sin(PI * wind_dir / 180);
-    float wind_dir_y = wind_speed * cos(PI * wind_dir / 180);
-    float local_wind_dir_x = speed * sin(PI * heading / 180);
-    float local_wind_dir_y = speed * cos(PI * heading / 180);
+    //float wind_dir_x = wind_speed * sin(PI * wind_dir / 180);
+    //float wind_dir_y = wind_speed * cos(PI * wind_dir / 180);
+    //float local_wind_dir_x = speed * sin(PI * heading / 180);
+    //float local_wind_dir_y = speed * cos(PI * heading / 180);
+    float relaive_wind = wind_dir - heading;
+    if(relaive_wind > 180)
+        relaive_wind -= 360;
+    else if(relaive_wind <= -180)
+        relaive_wind += 360;
+    float wind_dir_x = wind_speed * sin(PI * relaive_wind / 180);
+    float wind_dir_y = wind_speed * cos(PI * relaive_wind / 180);
+    float local_wind_dir_x = 0;
+    float local_wind_dir_y = speed;
 
     apparent_wind_speed = sqrt((wind_dir_x*wind_dir_x) + ((wind_dir_y + speed)*(wind_dir_y + speed)));
-    apparent_wind_dir = (180 * atan((wind_dir_x + local_wind_dir_x) / (wind_dir_y + local_wind_dir_y)) / PI) - heading;
-    if(apparent_wind_dir < -180)
-        apparent_wind_dir = 180 + apparent_wind_dir;
+    apparent_wind_dir = atan2((wind_dir_x + local_wind_dir_x), (wind_dir_y + local_wind_dir_y)) * 180 / PI;
+    if(apparent_wind_dir > 180)
+        apparent_wind_dir -= 360;
+    else if(apparent_wind_dir <= -180)
+        apparent_wind_dir += 360;
 
     /* Calculate forces on Spars and Sails. */
 
@@ -37,7 +48,7 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         // coeficient_drag == 1.5 for mast and rigging.
         // if we presume a spar is 1% as wide as it is high and the rigging presents the same windage,
         // the area seen by the wind will be the spar length * spar length * 0.02
-        float force_drag = 0.5 * AIR_DENSITY * (it_spar->length * it_spar->length * 0.02) * 1.5 * apparent_wind_speed * apparent_wind_speed;
+        float force_drag = 0.5 * AIR_DENSITY * ((float)it_spar->length * it_spar->length * 0.02) * 1.5 * apparent_wind_speed * apparent_wind_speed;
         float force_drag_x = force_drag * sin(PI * apparent_wind_dir / 180);
         float force_drag_y = force_drag * cos(PI * apparent_wind_dir / 180);
 
@@ -52,7 +63,7 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
             force_heel += force_drag_x * it_spar->length /2;
         }
         for(std::vector<Sail>::iterator it_sail = it_spar->sails.begin() ; it_sail != it_spar->sails.end(); ++it_sail){
-            int sail_area = it_sail->height * it_sail->foot * it_sail->deployed / 2;
+            int sail_area = (float)it_sail->height * it_sail->foot * it_sail->deployed / 2;
 
             /* Front of sail's position on the boat. */
             int tack_on_boat;
@@ -95,20 +106,23 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
             float coeficient_lift = 1.3 * sin(2 * aoa * PI / 180);
             float coeficient_drag;
             if(aoa > 0){
-                coeficient_drag = .9 * cos((2 * (aoa +5) + 180) * PI / 180) + .9;
+                coeficient_drag = .9 * cos((2.0f * (aoa +5) + 180) * PI / 180) + .9;
             } else {
-                coeficient_drag = .9 * cos((2 * (aoa -5) + 180) * PI / 180) + .9;
+                coeficient_drag = .9 * cos((2.0f * (aoa -5) - 180) * PI / 180) + .9;
             }
 
-            float force_lift = 0.5 * AIR_DENSITY * sail_area * coeficient_lift * apparent_wind_speed * apparent_wind_speed;
-            force_drag = 0.5 * AIR_DENSITY * sail_area * coeficient_drag * apparent_wind_speed * apparent_wind_speed;
+            float force_lift = 0.5f * AIR_DENSITY * sail_area * coeficient_lift * apparent_wind_speed * apparent_wind_speed;
+            force_drag = 0.5f * AIR_DENSITY * sail_area * coeficient_drag * apparent_wind_speed * apparent_wind_speed;
 
             float force_lift_x = force_lift * cos(PI * apparent_wind_dir / 180);
             float force_lift_y = force_lift * sin(PI * apparent_wind_dir / 180);
             force_drag_x = force_drag * sin(PI * apparent_wind_dir / 180);
             force_drag_y = force_drag * cos(PI * apparent_wind_dir / 180);
-
-            force_leway += -force_lift_x - force_drag_x;
+cout << "~ " << coeficient_lift << " " << coeficient_drag << "\n";
+cout << ". " << (int)force_lift << " " << (int)force_drag << "\n";
+cout << "* " << (int)force_lift_x << " " << (int)force_drag_x << "\n";
+cout << "& " << (int)force_lift_y << " " << (int)force_drag_y << "\n";
+            force_leway += -force_lift_x -force_drag_x;
             force_forward += force_lift_y - force_drag_y;
 
             force_rotation += (force_lift_x + force_drag_x) * (cod - centre_of_effort);
@@ -117,20 +131,45 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         }
     }
 
+    int timeslice = 10;
+
+
+    // Apply forward_force.
+    // force = mass * acceleration.
+    // Acceleration is the change in speed in a set time.
+    // Also the force due to drag is prportinal to the speed.
+    float drag_coeficient_face = .1;
+    float drag_coeficient_side = 2;
+    int boat_area_face = beam * draft / 2;
+    int boat_area_side = length * draft / 2;
+    int resistive_force = 0.5 * WATER_DENSITY * boat_area_face * drag_coeficient_face * speed * std::abs(speed);
+    int leeway_resistive_force = 0.5 * WATER_DENSITY * boat_area_side * drag_coeficient_side * leeway_speed * std::abs(leeway_speed);
+
+    force_forward -= resistive_force;
+    cout << (int)force_leway << "\n" << (int)leeway_resistive_force << "\n";
+    force_leway -= leeway_resistive_force;
+
+    speed += ((float)force_forward / displacment) / timeslice;
+    leeway_speed += ((float)force_leway / displacment) / timeslice;
+
+
     /* 1 knot = 0.514444444 m/s. We round to 0.5m/s.
      * pow(2, MIN_RESOLUTION) == 16                   */
-    int timeslice = 10;
     // forwards
-    pos_x += (float)sin(PI * heading / 180) * speed * 16 * 0.5 / timeslice;
-    pos_y += (float)cos(PI * heading / 180) * speed * 16 * 0.5 / timeslice;
+    pos_x += (float)sin(PI * heading / 180) * (float)speed * 16 * 0.5 / timeslice;
+    pos_y += (float)cos(PI * heading / 180) * (float)speed * 16 * 0.5 / timeslice;
 
     //leeway
-    //posX -= cos(PI * heading / 18000) * leeway_speed * 16 * 0.005 / timeslice;
-    //posY -= sin(PI * heading / 18000) * leeway_speed * 16 * 0.005 / timeslice;
+    pos_x += (float)cos(PI * heading / 180) * (float)leeway_speed * 16 * 0.5 / timeslice;
+    pos_y -= (float)sin(PI * heading / 180) * (float)leeway_speed * 16 * 0.5 / timeslice;
 
-    cout << "heading: \t\t" << heading << "\n";
+    cout << "force_forward:\t\t" << (int)force_forward << "\n";
+    cout << "force_leway: \t\t" << (int)force_leway << "\n";
+    cout << "speed: \t\t\t" << speed << "\n";
+    cout << "leeway_speed: \t\t" << leeway_speed << "\n";
     cout << "wind_dir:\t\t" << wind_dir << "\n";
     cout << "apparent_wind_dir:\t" << apparent_wind_dir << "\n";
+    cout << "apparent_wind_speed:\t" << apparent_wind_speed << "\n";
 }
 
 Icon Vessel::PopulateIcon(int x0, int y0, int x1, int y1){
@@ -413,9 +452,9 @@ Fleet::Fleet(void){
         v0.pos_x                    = MAX_SIZE / 2;
         v0.pos_y                    = MAX_SIZE / 2;
         v0.desired_heading          = 0.0f;
-        v0.heading                  = 180.0f;
+        v0.heading                  = 135.0f;
         v0.desired_speed            = 3.5f;
-        v0.speed                    = 10.0f;
+        v0.speed                    = 0.0f;
         v0.apparent_wind_dir        = 45;
         v0.apparent_wind_speed      = 10.0f;
         v0.last_updated             = 0;

@@ -74,6 +74,7 @@ struct Vessel {
     float heading;                  // Vessel is actuallly pointing in this direction.
     float desired_speed;            
     float speed;                    // Current speed of vessel.
+    float leeway_speed;             // Speed perpendicular to the keel. (ie. sideways.)
     float apparent_wind_dir;        // Wind direction relitive to vessel (taking vessel speed over groind into account).
     float apparent_wind_speed;      // Wind speed relitive to vessel (taking vessel speed over groind into account).
     unsigned int last_updated;      // Time when vessel's current speed and heading were last calculated.

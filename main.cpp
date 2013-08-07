@@ -41,7 +41,7 @@ void drawBoats(int* shutdown, Map* p_testMap){
     Data data;
     while(*shutdown == 0){
         usleep(100000);     // 100ms
-        //usleep(5000000);
+        //usleep(1000000);
         cout << "tick\n";
         vessels.CalculateVessels(data.wind_speed, data.wind_dir);
         p_testMap->DrawBoats();

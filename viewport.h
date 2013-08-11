@@ -33,6 +33,9 @@ struct Window{
     int view_y;
     float zoom;                 // How far to zoom in/out.
     int rotation;               // Rotation about current view position.
+    int mouse_x;                // position of mouse on window
+    int mouse_y;
+    int mouse_button;           // Mouse button state on window.
 
     /* Contains the openGL data for the background. */
     std::vector<GLint>* _p_data_points;
@@ -70,6 +73,8 @@ int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p
 void Display(void);
 void displayBorder(void);
 void click(int button, int state, int x, int y);
+void mouse_move(int x, int y);
+void mouse_enter_window(int state);
 void timer(int value);
 void keyboard(unsigned char key, int x, int y);
 void keyboardSecial(int key, int x, int y);

@@ -14,27 +14,13 @@ Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int lo
     _task_list.clear();
     _task_list_low_res.clear();
     _low_res = low_res;
-    windows[_window_index].low_res = 0;     // Set this to 0 so we don't start displaying low_res layer untill there is data in it.
+    windows[_window_index].low_res = 0;     // Set this to 0 so we don't start displaying low_res layer until there is data in it.
     windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
     windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
     
     vessels.CalculateVessels(data.wind_speed, data.wind_dir);
-
-    /*vessels.StartIcon();
-    Icon icon;
-    icon.scale = 0;
-    icon.key = 1;
-    while(icon.key != 0){
-        icon = vessels.NextIcon(0,0,MAX_SIZE,MAX_SIZE);
-        if(icon.scale){
-            Icon_key key;
-            key.type = ICON_TYPE_VESSEL;
-            key.key = icon.key;
-            AddIcon(key, icon);
-        }
-    }*/
     DrawBoats();
-};
+}
 
 void Map::Draw(void){
     while(!windows[_window_index].window);  // wait until window is initialised.
@@ -56,15 +42,15 @@ int Map::DrawSection(Task* p_task, int resolution){
     /* Currently viewed bounding box. */
     int screen_x0, screen_y0, screen_x1, screen_y1;
     if(_width > _height){
-        screen_x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-        screen_x1 = -_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-        screen_y0 = -_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-        screen_y1 = -_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+        screen_x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+        screen_x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+        screen_y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+        screen_y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
     } else {
-        screen_x0 = -_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-        screen_x1 = -_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-        screen_y0 = -_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-        screen_y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+        screen_x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+        screen_x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+        screen_y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+        screen_y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
     }
 
     if(p_task->x1 <= screen_x0 or p_task->x0 >= screen_x1 or p_task->y1 <= screen_y0 or p_task->y0 >= screen_y1){
@@ -300,15 +286,15 @@ inline GLubyte Map::WaterCol(float height, int resolution){
 bool Map::ScrubView(void){
     int x0, y0, x1, y1;
     if(_width > _height){
-        x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-        x1 = -_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-        y0 = -_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-        y1 = -_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+        x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+        x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+        y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+        y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
     } else {
-        x0 = -_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-        x1 = -_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-        y0 = -_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-        y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+        x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+        x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+        y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+        y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
     }
     return ScrubView(x0, y0, x1, y1);
 }
@@ -422,19 +408,19 @@ void Map::ActOnSignal(signal sig){
                 _task_list_low_res.clear();
                 break;
             case SIG_VAL_UP:
-                _view_y -= KEY_MOVMENT / _zoom;
-                task.type = TASK_TYPE_PAN;
-                break;
-            case SIG_VAL_DOWN:
                 _view_y += KEY_MOVMENT / _zoom;
                 task.type = TASK_TYPE_PAN;
                 break;
+            case SIG_VAL_DOWN:
+                _view_y -= KEY_MOVMENT / _zoom;
+                task.type = TASK_TYPE_PAN;
+                break;
             case SIG_VAL_LEFT:
-                _view_x += KEY_MOVMENT / _zoom;
+                _view_x -= KEY_MOVMENT / _zoom;
                 task.type = TASK_TYPE_PAN;
                 break;
             case SIG_VAL_RIGHT:
-                _view_x -= KEY_MOVMENT / _zoom;
+                _view_x += KEY_MOVMENT / _zoom;
                 task.type = TASK_TYPE_PAN;
                 break;
         }
@@ -443,15 +429,15 @@ void Map::ActOnSignal(signal sig){
 
         /* Different aspects depending on whether map is portrait or landscape. */
         if(_width > _height){
-            task.x0 = -store_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-            task.x1 = -store_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-            task.y0 = -store_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-            task.y1 = -store_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+            task.x0 = store_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+            task.x1 = store_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+            task.y0 = store_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+            task.y1 = store_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
         } else {
-            task.x0 = -store_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-            task.x1 = -store_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-            task.y0 = -store_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-            task.y1 = -store_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+            task.x0 = store_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+            task.x1 = store_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+            task.y0 = store_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+            task.y1 = store_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
         }
         task.view_x = _view_x;
         task.view_y = _view_y;
@@ -462,33 +448,33 @@ void Map::ActOnSignal(signal sig){
         /* For adding a 1px overlap. */
         int pix_size = 2 * max((task.x1-task.x0),(task.y1-task.y0)) / min(_width,_height);
 
-        if(store_view_x > _view_x){
+        if(store_view_x < _view_x){
             task.x0 = task.x1 - pix_size;
             if(_width > _height){
-                task.x1 = -_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+                task.x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
             } else {
-                task.x1 = -_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+                task.x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
             }
-        } else if(store_view_x < _view_x){
+        } else if(store_view_x > _view_x){
             task.x1 = task.x0 + pix_size;
             if(_width > _height){
-                task.x0 = -_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+                task.x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
             } else {
-                task.x0 = -_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-            }
-        } else if(store_view_y > _view_y){
-            task.y0 = task.y1 - pix_size;
-            if(_width > _height){
-                task.y1 = -_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-            } else {
-                task.y1 = -_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+                task.x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
             }
         } else if(store_view_y < _view_y){
+            task.y0 = task.y1 - pix_size;
+            if(_width > _height){
+                task.y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+            } else {
+                task.y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+            }
+        } else if(store_view_y > _view_y){
             task.y1 = task.y0 + pix_size;
             if(_width > _height){
-                task.y0 = -_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+                task.y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
             } else {
-                task.y0 = -_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+                task.y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
             }
         }
 
@@ -560,7 +546,7 @@ void Map::DrawBoats(void){
     icon.scale = 0;
     icon.key = 1;
     while(icon.key != 0){
-        icon = vessels.NextIcon(0,0,MAX_SIZE,MAX_SIZE);
+        icon = vessels.NextIcon(_window_index);
         if(icon.scale){
             Icon_key key;
             key.type = ICON_TYPE_VESSEL;
@@ -568,6 +554,6 @@ void Map::DrawBoats(void){
             AddIcon(key, icon);
         }
     }
-
+    RedrawIcons();
 }
 

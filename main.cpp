@@ -4,11 +4,15 @@
 #include <time.h>
 #include <stdio.h>
 
+//#include <google/profiler.h>
+//#include <google/heap-profiler.h>
+
 #include "viewport.h"
 #include "signaling.h"
 #include "data.h"
 #include "map.h"
 #include "vessel.h"
+#include "cockpit.h"
 
 
 using namespace std;
@@ -36,16 +40,17 @@ void housekeeping(int* shutdown){
     cout << "closing housekeeping\n";
 }
 
-void drawBoats(int* shutdown, Map* p_testMap){
+void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
     Fleet vessels;
     Data data;
     while(*shutdown == 0){
         usleep(100000);     // 100ms
         //usleep(1000000);
-        cout << "tick\n";
+        //cout << "tick\n";
         vessels.CalculateVessels(data.wind_speed, data.wind_dir);
         p_testMap->DrawBoats();
-        p_testMap->RedrawIcons();
+        
+        p_cockpit->Draw();
     }
     ++(*shutdown);
     cout << "closing drawBoats\n";
@@ -53,19 +58,25 @@ void drawBoats(int* shutdown, Map* p_testMap){
 
 int main(int argc, char** argv)
 {
+    //ProfilerStart("profile_test");
+    //HeapProfilerStart("heapprofile_test");
+
     int shutdown = 0;
 
     thread canvas(Init,800,0,800,800,&shutdown,argc,argv);
     thread t(task1, &shutdown);
     thread t2(housekeeping, &shutdown);
 
-    Viewport testViewport(SIG_DEST_TEST, 0, 0, 400, 400);
+    Cockpit cockpit(SIG_DEST_TEST, 0, 0, 200, 200);
     Viewport testViewport2(SIG_DEST_TEST, 400, 0, 400, 200);
     Viewport testViewport3(SIG_DEST_TEST, 250, 50, 200, 100);
     Map testMap(SIG_DEST_MAP, 0, 200, 800, 600, LOW_RESOLUTION);
 
     testMap.Draw();
-    testViewport.SetView(20, 20, 1, 0);
+    //testMap.SetView(0, 0, 40000, 0);
+    
+    cockpit.SetView(0, 0, 40000, 0);
+
     testViewport2.SetView(0, 0, 0.5, 0);
     testViewport3.SetView(0, 0, 1, 45);
 
@@ -76,9 +87,14 @@ int main(int argc, char** argv)
     testViewport2.AddIcon(key, icon);
     testViewport2.RedrawIcons();
 
-    thread t3(drawBoats, &shutdown, &testMap);
+    thread t3(drawBoats, &shutdown, &testMap, &cockpit);
+
+    //ProfilerStop();
+    //HeapProfilerStop();
 
     canvas.join();
+    //ProfilerStop();
+
     // we never get here because glutMainLoop() has allready close()-ed.
     ++shutdown;
     t.join();

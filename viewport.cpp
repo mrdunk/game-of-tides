@@ -125,7 +125,7 @@ void _init(void){
 }
 
 void _init(int window_index){
-    cout << "_init(" << window_index << ")\n";
+    //cout << "_init(" << window_index << ")\n";
     setView(window_index, windows[window_index].view_x, windows[window_index].view_y, windows[window_index].zoom, windows[window_index].rotation);
 }
 
@@ -163,7 +163,7 @@ void setView(int window_index, int view_x, int view_y, float zoom, int rotation)
     glRotatef(-rotation, 0.0, 0.0, 1.0);
     glTranslated(-min(w,h), -min(w,h), 0.0);        // use min(w,h) here to centre data on the square part of a rectangle.
 
-    glTranslated(view_x, view_y, 0.0);
+    glTranslated(-view_x, -view_y, 0.0);
 }
 
 void Resize(int win_width, int win_height){
@@ -246,6 +246,7 @@ void Display(void){
 
     int pixSize = MAX_SIZE / (windows[window_index].width * windows[window_index].zoom * MIN_RECURSION);
     sprintf ( Result, "PixelSize: %d m", pixSize );
+    //glColor3f(0, 0, 1);
     renderBitmapString(10, 20, GLUT_BITMAP_TIMES_ROMAN_10, Result);
 
     sprintf ( Result, "_zoom: %lf", windows[window_index].zoom);
@@ -268,10 +269,47 @@ void displayBorder(void){
 
 void click(int button, int state, int x, int y){
     /* http://pages.cpsc.ucalgary.ca/~tfalders/CPSC453/GLUT.html */
-    //cout<<"window: " << glutGetWindow() << "\tbutton:  "<<button<<"\tstate: "<<state<<"\tx: "<<x<<"  y: "<<y<<"\n";
 
-    signal sig = {sig.type = SIG_TYPE_MOUSE_BUT, sig.source = glutGetWindow(), sig.key = button, sig.val = state};
+    int window_index = 0;
+    while(window_index < MAX_WINDOWS){
+        if ( windows[window_index].window == glutGetWindow())
+            break;
+        ++window_index;
+    }
+
+    cout<<"window: " << window_index << "\tbutton:  "<<button<<"\tstate: "<<state<<"\tx: "<<x<<"  y: "<<y<<"\n";
+
+    signal sig = {sig.type = SIG_TYPE_MOUSE_BUT, sig.source = window_index, sig.key = button, sig.val = state};
     Signal_instance.PushEvent(sig);
+
+    windows[window_index].mouse_button = button;
+}
+
+void mouse_move(int x, int y){
+    int window_index = 0;
+    while(window_index < MAX_WINDOWS){
+        if ( windows[window_index].window == glutGetWindow())
+            break;
+        ++window_index;
+    }
+
+    //cout << window_index << "\t" << x << "," << y << "\n";
+    windows[window_index].mouse_x = x;
+    windows[window_index].mouse_y = y;
+}
+
+void mouse_enter_window(int state){
+    int window_index = 0;
+    while(window_index < MAX_WINDOWS){
+        if ( windows[window_index].window == glutGetWindow())
+            break;
+        ++window_index;
+    }
+
+    if(state == GLUT_LEFT){
+        windows[window_index].mouse_x = -1;
+        windows[window_index].mouse_y = -1;
+    }
 }
 
 void timer(int value){
@@ -344,13 +382,16 @@ void refreshChildWindows(void){
                 windows[i].window = glutCreateSubWindow(windows[0].window, windows[i].pos_x + BORDERWIDTH, windows[i].pos_y + BORDERWIDTH, 
                                                         windows[i].width, windows[i].height);
                 glutMouseFunc(click);
+                glutMotionFunc(mouse_move);
+                glutPassiveMotionFunc(mouse_move);
+                glutEntryFunc(mouse_enter_window);
                 glutKeyboardFunc(keyboard);
                 glutSpecialFunc(keyboardSecial);
                 glutDisplayFunc(Display);
                 windows[i].initialised = 1;
         }
         if(windows[i].dirty){
-                cout << " Updating window " << i << "\n" << flush;
+                //cout << " Updating window " << i << "\n" << flush;
                 _init(i);
                 windows[i].dirty = 0;
         }
@@ -403,6 +444,8 @@ Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, u
             windows[i]._p_data_points_icons = &_data_points_icons;
             windows[i]._p_data_colour_icons = &_data_colour_icons;
             windows[i].low_res = 0;
+            windows[i].mouse_x = -1;
+            windows[i].mouse_y = -1;
             _window_index = i;
             _pos_x = pos_x;
             _pos_y = pos_y;
@@ -424,7 +467,7 @@ Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, u
 }
 
 void Viewport::SetView(int view_x, int view_y, float zoom, int rotation){
-    cout << "Viewport::SetView " << _window_index << "\n" << flush;
+    //cout << "Viewport::SetView " << _window_index << "\n" << flush;
     _view_x = view_x;
     _view_y = view_y;
     _zoom = zoom;

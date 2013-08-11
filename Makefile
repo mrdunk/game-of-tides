@@ -4,7 +4,7 @@ CFLAGS+= -g -Wall
 LDFLAGS=
 LIBS=-lGL -lGLU -lglut -lGLEW -pthread
 
-game: signaling.o main.o viewport.o data.o map.o vessel.o
+game: signaling.o main.o viewport.o data.o map.o vessel.o cockpit.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 %.o: %.c

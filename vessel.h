@@ -34,6 +34,8 @@
 #define VESSEL_STATE_MAKING_WAY 3
 
 
+extern Window windows[MAX_WINDOWS];
+
 struct Sail {
     std::string description;        //
     unsigned int type;              // See "#define SAIL_TYPE_XXX".
@@ -82,22 +84,22 @@ struct Vessel {
     /* Update current speed and heading of the vessel. */
     void Calculate(float wind_speed, float wind_dir);
 
-    /* Add the vessel's Icon. */
-    Icon PopulateIcon(int x0, int y0, int x1, int y1);
+    /* Add the vessel's Icon (if it would be visible on the window). */
+    Icon PopulateIcon(int window_index);
 };
 
 class Fleet {
     private:
-        static std::vector<Vessel> vessels;    // Contains all instances of Vessel.
         unsigned int _vessel_itterater;
     public:
+        static std::vector<Vessel> vessels;    // Contains all instances of Vessel.
         Fleet(void);
 
         /* Update current speed and heading of all vessels. */
         void CalculateVessels(float wind_speed, float wind_dir);
 
         /* Itterate through vessels Icons. */
-        Icon NextIcon(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1);
+        Icon NextIcon(int window_index);
 
         /* Return to 1st vessels Icon. */
         void StartIcon(void);

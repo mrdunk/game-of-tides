@@ -35,6 +35,8 @@ struct Window{
     int rotation;               // Rotation about current view position.
     int mouse_x;                // position of mouse on window
     int mouse_y;
+    int mouse_x_rel;            // position of mouse on window relative to the datastructure.
+    int mouse_y_rel;
     int mouse_button;           // Mouse button state on window.
 
     /* Contains the openGL data for the background. */

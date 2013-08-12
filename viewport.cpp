@@ -164,6 +164,11 @@ void setView(int window_index, int view_x, int view_y, float zoom, int rotation)
     glTranslated(-min(w,h), -min(w,h), 0.0);        // use min(w,h) here to centre data on the square part of a rectangle.
 
     glTranslated(-view_x, -view_y, 0.0);
+
+    // Since view has changed, mouse position relative to view will also have changed (if mouse is within window).
+    if(windows[window_index].mouse_x >= 0 or windows[window_index].mouse_y >= 0){
+        mouse_move(windows[window_index].mouse_x, windows[window_index].height - windows[window_index].mouse_y);
+    }
 }
 
 void Resize(int win_width, int win_height){
@@ -282,7 +287,13 @@ void click(int button, int state, int x, int y){
     signal sig = {sig.type = SIG_TYPE_MOUSE_BUT, sig.source = window_index, sig.key = button, sig.val = state};
     Signal_instance.PushEvent(sig);
 
-    windows[window_index].mouse_button = button;
+    if(state == GLUT_DOWN){
+        //cout << "GLUT_DOWN\n";
+        windows[window_index].mouse_button = button;
+    } else {
+        //cout << "GLUT_UP\n";
+        windows[window_index].mouse_button = -1;
+    }
 }
 
 void mouse_move(int x, int y){
@@ -295,7 +306,30 @@ void mouse_move(int x, int y){
 
     //cout << window_index << "\t" << x << "," << y << "\n";
     windows[window_index].mouse_x = x;
-    windows[window_index].mouse_y = y;
+    windows[window_index].mouse_y = windows[window_index].height - y;       // normalise so 0,0 is bottom,left
+
+    // Set mouse position relative to data structure.
+    if(windows[window_index].initialised){
+        if(windows[window_index].width > windows[window_index].height){
+            windows[window_index].mouse_x_rel = (long)windows[window_index].data_size * (windows[window_index].mouse_x - (int)windows[window_index].width / 2) 
+                                                / (windows[window_index].height * windows[window_index].zoom)
+                                                + windows[window_index].view_x + windows[window_index].data_size/2;
+            windows[window_index].mouse_y_rel = (long)windows[window_index].data_size * (windows[window_index].mouse_y - (int)windows[window_index].height / 2)
+                                                / (windows[window_index].height * windows[window_index].zoom)
+                                                + windows[window_index].view_y + windows[window_index].data_size/2;
+        } else {
+            windows[window_index].mouse_x_rel = (long)windows[window_index].data_size * (windows[window_index].mouse_x - (int)windows[window_index].width / 2)  
+                                                / (windows[window_index].width * windows[window_index].zoom)
+                                                + windows[window_index].view_x + windows[window_index].data_size/2;
+            windows[window_index].mouse_y_rel = (long)windows[window_index].data_size * (windows[window_index].mouse_y - (int)windows[window_index].height / 2)
+                                                / (windows[window_index].width * windows[window_index].zoom)
+                                                + windows[window_index].view_y + windows[window_index].data_size/2;
+        }
+
+        //cout << (long)windows[window_index].data_size * windows[window_index].mouse_y / (windows[window_index].height * windows[window_index].zoom) << "\t"
+        //     << windows[window_index].mouse_y << "\t"
+        //     << "\t" << windows[window_index].mouse_x_rel << " , " << windows[window_index].mouse_y_rel << "\n";
+    }
 }
 
 void mouse_enter_window(int state){
@@ -309,6 +343,8 @@ void mouse_enter_window(int state){
     if(state == GLUT_LEFT){
         windows[window_index].mouse_x = -1;
         windows[window_index].mouse_y = -1;
+        windows[window_index].mouse_x_rel = -1;
+        windows[window_index].mouse_y_rel = -1;
     }
 }
 
@@ -446,6 +482,9 @@ Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, u
             windows[i].low_res = 0;
             windows[i].mouse_x = -1;
             windows[i].mouse_y = -1;
+            windows[i].mouse_x_rel = -1;
+            windows[i].mouse_y_rel = -1;
+            windows[i].mouse_button = -1;
             _window_index = i;
             _pos_x = pos_x;
             _pos_y = pos_y;

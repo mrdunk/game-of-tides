@@ -1,4 +1,6 @@
 #include <iostream>
+#include <math.h>
+#include <GL/freeglut.h>
 
 #include "vessel.h"
 
@@ -9,6 +11,8 @@ using namespace std;
 void Vessel::Calculate(float wind_speed, float wind_dir){
     //cout << "Vessel::Calculate " << description << "\n";
     
+    //heading = desired_heading;
+
     bool optimise_trim = true;
 
     double force_leway = 0;
@@ -48,7 +52,7 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         // coeficient_drag == 1.5 for mast and rigging.
         // if we presume a spar is 1% as wide as it is high and the rigging presents the same windage,
         // the area seen by the wind will be the spar length * spar length * 0.02
-        float force_drag = 0.5 * AIR_DENSITY * ((float)it_spar->length * it_spar->length * 0.02) * 1.5 * apparent_wind_speed * apparent_wind_speed;
+        float force_drag = 0.5f * AIR_DENSITY * ((float)it_spar->length * it_spar->length * 0.02) * 1.5 * apparent_wind_speed * apparent_wind_speed;
         float force_drag_x = force_drag * sin(PI * apparent_wind_dir / 180);
         float force_drag_y = force_drag * cos(PI * apparent_wind_dir / 180);
 
@@ -56,10 +60,10 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         force_forward += -force_drag_y;
 
         if(it_spar->type == SPAR_TYPE_BOWSPRIT){
-            force_rotation += force_drag_x * (cod + it_spar->length /2);
+            force_rotation -= force_drag_x * (cod + it_spar->length /2);
         }
         else if(it_spar->type == SPAR_TYPE_MAST){
-            force_rotation += force_drag_x * (cod - it_spar->position);
+            force_rotation -= force_drag_x * (cod - it_spar->position);
             force_heel += force_drag_x * it_spar->length /2;
         }
         for(std::vector<Sail>::iterator it_sail = it_spar->sails.begin() ; it_sail != it_spar->sails.end(); ++it_sail){
@@ -81,25 +85,36 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
 
             /* The optimum aoa to apparent wind is ~0.5 * angle of course to apparent wind. */
             float aoa;
-            if(optimise_trim)
-                it_sail->sheeted = (float)apparent_wind_dir / 2;
-
-            if(apparent_wind_dir >= 0){
+            if(it_sail->state == SAIL_STATE_SET){
+                if(optimise_trim)
+                    it_sail->sheeted = (float)apparent_wind_dir / 2;
                 aoa = it_sail->sheeted;
-                if(apparent_wind_dir < aoa){
-                    aoa = apparent_wind_dir;
-                    if(aoa < it_sail->max_sheeted){
-                        aoa = it_sail->max_sheeted;
+                if(apparent_wind_dir >= 0){
+                    if(apparent_wind_dir < it_sail->sheeted){
+                        it_sail->sheeted = apparent_wind_dir;
+                    }
+                    if(it_sail->sheeted < it_sail->max_sheeted){
+                        it_sail->sheeted = it_sail->max_sheeted;
+                    }
+                    if(it_sail->sheeted > it_sail->min_sheeted){
+                        it_sail->sheeted = it_sail->min_sheeted;
+                    }
+                } else {
+                    if(apparent_wind_dir > it_sail->sheeted){
+                        it_sail->sheeted = apparent_wind_dir;
+                    }
+                    if(it_sail->sheeted > -it_sail->max_sheeted){
+                        it_sail->sheeted = -it_sail->max_sheeted;
+                    }
+                    if(it_sail->sheeted < -it_sail->min_sheeted){
+                        it_sail->sheeted = -it_sail->min_sheeted;
                     }
                 }
+                aoa = it_sail->sheeted;
             } else {
-                aoa = it_sail->sheeted;
-                if(apparent_wind_dir > aoa){
-                    aoa = apparent_wind_dir;
-                    if(aoa > it_sail->max_sheeted){
-                        aoa = it_sail->max_sheeted;
-                    }
-                }
+                // sail pointing straight down wind.
+                it_sail->sheeted = apparent_wind_dir;
+                aoa = 0;
             }
 
             float coeficient_lift = 1.3 * sin(2 * aoa * PI / 180);
@@ -124,9 +139,12 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
             force_leway += -force_lift_x -force_drag_x;
             force_forward += force_lift_y - force_drag_y;
 
-            force_rotation += (force_lift_x + force_drag_x) * (cod - centre_of_effort);
+            force_rotation -= (force_lift_x + force_drag_x) * ((int)cod - centre_of_effort);
             force_heel += (force_lift_x + force_drag_x) * ((it_sail->height * it_sail->deployed) /3 + it_sail->tack_height);
-
+            cout << "centre_of_effort:\t" << centre_of_effort << "\n";
+            cout << "force_lift_x:    \t" << force_lift_x << "\n";
+            cout << "force_drag_x:    \t" << force_drag_x << "\n";
+            cout << "aoa:\t\t\t" << aoa << "\t" << it_sail->state << "\t" << (force_lift_x + force_drag_x) * ((int)cod - centre_of_effort) << "\n";
         }
     }
 
@@ -137,7 +155,7 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
     // force = mass * acceleration.
     // Acceleration is the change in speed in a set time.
     // Also the force due to drag is prportinal to the speed.
-    float drag_coeficient_face = .1;
+    float drag_coeficient_face = .05;
     float drag_coeficient_side = 10;
     int boat_area_face = beam * draft / 2;
     int boat_area_side = length * draft / 2;
@@ -148,9 +166,32 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
 //cout << (int)force_leway << "\n" << (int)leeway_resistive_force << "\n";
     force_leway -= leeway_resistive_force;
 
-    speed += ((float)force_forward / displacment) / timeslice;
-    leeway_speed += ((double)force_leway / displacment) / (timeslice * 2);
+    speed += ((float)force_forward / displacment) / timeslice / 5;
+    leeway_speed += ((double)force_leway / displacment) / timeslice / 5;
 
+    cout << "\nforce_rotation: \t" << (long long)force_rotation /100 << "\n";
+    cout << "rudder:         \t" << (float)speed * speed * length << "\n";
+    cout << "displacment:    \t" << displacment << "\n";
+    cout << "\n";
+
+    int modified_force_rotation = force_rotation /100;
+    int force_rudder = 0;
+    //state = VESSEL_STATE_ADRIFT;
+    if(state == VESSEL_STATE_MAKING_WAY){
+        if(desired_heading < heading){
+            force_rudder = -(float)speed * speed * length * 30000;
+        } else {
+            force_rudder = (float)speed * speed * length * 30000;
+        }
+        if(desired_heading - heading > -2 and desired_heading - heading < 2){
+            force_rudder /= 10;
+        }
+    }
+    modified_force_rotation += force_rudder;
+
+    cout << "modified_force_rotation:\t" << modified_force_rotation << "\n\n";
+
+    heading += (float)modified_force_rotation / displacment / 50;
 
     /* 1 knot = 0.514444444 m/s. We round to 0.5m/s.
      * pow(2, MIN_RESOLUTION) == 16                   */
@@ -164,18 +205,24 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
 
 //    cout << "force_forward:\t\t" << (int)force_forward << "\n";
 //    cout << "force_leway: \t\t" << (int)force_leway << "\n";
-//    cout << "speed: \t\t\t" << speed << "\n";
-//    cout << "leeway_speed: \t\t" << leeway_speed << "\n";
+    cout << "speed: \t\t\t" << speed << "\n";
+    cout << "leeway_speed: \t\t" << leeway_speed << "\n";
+    cout << "heading:\t\t" << heading << "\n";
 //    cout << "wind_dir:\t\t" << wind_dir << "\n";
-//    cout << "apparent_wind_dir:\t" << apparent_wind_dir << "\n";
+    cout << "apparent_wind_dir:\t" << apparent_wind_dir << "\n";
 //    cout << "apparent_wind_speed:\t" << apparent_wind_speed << "\n";
 }
 
 Icon Vessel::PopulateIcon(int window_index){
     Icon icon;
     
-    cout << "Vessel::PopulateIcon\t" << windows[window_index].view_x << "," << windows[window_index].view_y << "\n";
-    cout << "Vessel::PopulateIcon\t" << (int)pos_x << "," << (int)pos_y << "\n";
+    int mouse_dist_to_boat = -1;
+    if(windows[window_index].mouse_x_rel >= 0 or windows[window_index].mouse_y_rel >= 0){
+        mouse_dist_to_boat = sqrt(((windows[window_index].mouse_x_rel - pos_x) * (windows[window_index].mouse_x_rel - pos_x)) + 
+                                  ((windows[window_index].mouse_y_rel - pos_y) * (windows[window_index].mouse_y_rel - pos_y))) / 16;
+        //cout << mouse_dist_to_boat << "\n";
+    }
+
 /*    if(!(pos_x >= x0 and pos_x <= x1 and pos_y >= y0 and pos_y <= y1)){
         // Vessel not in view area.
         cout << "Vessel \"" << description << "\" not in view area.\n";
@@ -193,25 +240,6 @@ Icon Vessel::PopulateIcon(int window_index){
     icon.pos_x = pos_x;
     icon.pos_y = pos_y;
     
-    /*
-    icon.points.push_back (0);
-    icon.points.push_back (1000);
-    icon.points.push_back (100);
-    icon.points.push_back (0);
-    icon.points.push_back (-100);
-    icon.points.push_back (0);
-
-    icon.colour.push_back (255);
-    icon.colour.push_back (255);
-    icon.colour.push_back (0);
-    icon.colour.push_back (255);
-    icon.colour.push_back (255);
-    icon.colour.push_back (0);
-    icon.colour.push_back (255);
-    icon.colour.push_back (255);
-    icon.colour.push_back (0);
-
-    return icon;*/
 
     int bowsprit = 0;
 
@@ -222,6 +250,56 @@ Icon Vessel::PopulateIcon(int window_index){
     }
 
     int size = length;
+    float mouse_rel_boat_x = -1, mouse_rel_boat_y = -1, mouse_on_boat_x = -1, mouse_on_boat_y = -1;
+    if(windows[window_index].mouse_x >= 0 or windows[window_index].mouse_y >= 0){
+
+        mouse_rel_boat_x = (windows[window_index].mouse_x_rel - pos_x) / 16;
+        mouse_rel_boat_y = (windows[window_index].mouse_y_rel - pos_y) / 16;
+
+        mouse_on_boat_x = mouse_rel_boat_x * cos(3.141 * heading / 180) - mouse_rel_boat_y * sin(3.141 * heading / 180);
+        mouse_on_boat_y = mouse_rel_boat_x * sin(3.141 * heading / 180) + mouse_rel_boat_y * cos(3.141 * heading / 180);
+        mouse_on_boat_y = (float)length/200 - mouse_on_boat_y;
+
+        //cout << window_index << "\t\t\t" << mouse_on_boat_x << " ,\t" << mouse_on_boat_y << "\n";
+    }
+
+    // Mouse close to boat so activate highlighter.
+    if(mouse_dist_to_boat >= (int)(length + bowsprit)/200 and mouse_dist_to_boat < (int)length/100){
+        float potential_desired_heading;
+
+        potential_desired_heading = atan(mouse_rel_boat_x / mouse_rel_boat_y) * 180.0 / 3.141;
+        if(mouse_rel_boat_y < 0)
+            potential_desired_heading += 180;
+        //cout << mouse_rel_boat_x << " , " << mouse_rel_boat_y << "\t" << potential_desired_heading << "\n";
+
+        if(windows[window_index].mouse_button == GLUT_LEFT_BUTTON){
+            cout << "GLUT_LEFT_BUTTON\t" << windows[window_index].mouse_button << GLUT_LEFT_BUTTON << "\n";
+            desired_heading = potential_desired_heading;
+            if(desired_heading > 180){
+                desired_heading -= 360;
+            } else if(desired_heading < -180){
+                desired_heading += 360;
+            }
+        }
+
+        icon.points.push_back (sin((potential_desired_heading - heading) * PI / 180.0) * length);
+        icon.points.push_back (cos((potential_desired_heading - heading) * PI / 180.0) * length);
+        icon.points.push_back (sin((potential_desired_heading - heading +160) * PI / 180.0) * length);
+        icon.points.push_back (cos((potential_desired_heading - heading +160) * PI / 180.0) * length);
+        icon.points.push_back (sin((potential_desired_heading - heading +200) * PI / 180.0) * length);
+        icon.points.push_back (cos((potential_desired_heading - heading +200) * PI / 180.0) * length);
+
+        icon.colour.push_back (255);
+        icon.colour.push_back (255);
+        icon.colour.push_back (0);
+        icon.colour.push_back (255);
+        icon.colour.push_back (255);
+        icon.colour.push_back (0);
+        icon.colour.push_back (255);
+        icon.colour.push_back (255);
+        icon.colour.push_back (0);
+    }
+
 
     icon.points.push_back(0);
     icon.points.push_back((size/2) - bowsprit);
@@ -319,41 +397,43 @@ Icon Vessel::PopulateIcon(int window_index){
                 tack_on_boat = it_spar->position;
                 tack_on_boat += it_spar->length/MAST_RATIO;     // Thickness of mast.
             }
-            if(apparent_wind_dir >= 0){
-                aoa = it_sail->sheeted;
-                if(apparent_wind_dir < aoa){
-                    aoa = apparent_wind_dir;
-                    if(aoa < it_sail->max_sheeted){
-                        aoa = it_sail->max_sheeted;
-                    }
-                }
-            } else {
-                aoa = it_sail->sheeted;
-                if(apparent_wind_dir > aoa){
-                    aoa = apparent_wind_dir;
-                    if(aoa > it_sail->max_sheeted){
-                        aoa = it_sail->max_sheeted;
+            
+            aoa = apparent_wind_dir - it_sail->sheeted;
+
+            int foot = it_sail->foot * sqrt(it_sail->deployed);
+            int sail_col = 255;
+            // See if mouse pointer near sail.
+            if(mouse_on_boat_y * 100 > tack_on_boat + bowsprit and mouse_on_boat_y * 100 < tack_on_boat + bowsprit + foot){
+                float dist_from_tack = sqrt((mouse_on_boat_x*100 * mouse_on_boat_x*100) + ((tack_on_boat + bowsprit - mouse_on_boat_y*100) * (tack_on_boat + bowsprit - mouse_on_boat_y*100)));
+                float angle_to_tack = asin(mouse_on_boat_x*100 / dist_from_tack) * 180.0 / 3.141;
+                float dist_to_sail = sin((apparent_wind_dir - aoa + angle_to_tack) * 3.141 / 180.0) * dist_from_tack;
+                if((unsigned int)dist_to_sail < (unsigned)foot / 4){
+                    sail_col = 0;
+                    if(windows[window_index].mouse_button == GLUT_LEFT_BUTTON){
+                        if(it_sail->state == SAIL_STATE_SET)
+                            it_sail->state = SAIL_STATE_UNSET;
+                        else
+                            it_sail->state = SAIL_STATE_SET;
                     }
                 }
             }
 
-            int foot = it_sail->foot * sqrt(it_sail->deployed);
             if(it_sail->type == SAIL_TYPE_AFT){
                 icon.points.push_back(-(int)it_spar->length/MAST_RATIO);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat);
-                icon.points.push_back(-(int)foot * sin(3.141 * aoa / 180));
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)((float)foot * cos(3.141 * aoa / 180)));
+                icon.points.push_back(-(int)foot * sin(3.141 * (apparent_wind_dir - aoa) / 180));
+                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)((float)foot * cos(3.141 * (apparent_wind_dir - aoa) / 180)));
                 icon.points.push_back((int)it_spar->length/MAST_RATIO);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat);
 
                 icon.points.push_back(-(int)it_spar->length/MAST_RATIO);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat);
-                icon.points.push_back(-(int)foot * sin(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
-                icon.points.push_back(-(int)foot * sin(3.141 * aoa / 180));
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * aoa / 180));
+                icon.points.push_back(-(int)foot * sin(3.141 * ((apparent_wind_dir - aoa + apparent_wind_dir)/2) / 180) / 3);
+                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((apparent_wind_dir - aoa + apparent_wind_dir)/2) / 180) / 3);
+                icon.points.push_back(-(int)foot * sin(3.141 * (apparent_wind_dir - aoa) / 180));
+                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * (apparent_wind_dir - aoa) / 180));
 /*
-                icon.points.push_back(-(int)foot * sin(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
+                icon.points.push_bac6k(-(int)foot * sin(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
                 icon.points.push_back(-(int)foot * sin(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3 - (int)foot * sin(3.141 * aoa / 180) / 3);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3  - (int)foot * cos(3.141 * aoa / 180) / 3);
@@ -362,16 +442,16 @@ Icon Vessel::PopulateIcon(int window_index){
 */
                 for(int i = 0; i < 6; i++){
                     icon.colour.push_back(255);
-                    icon.colour.push_back(255);
+                    icon.colour.push_back(sail_col);
                     icon.colour.push_back(255);
                 }
             } else if(it_sail->type == SAIL_TYPE_FORE){
                 icon.points.push_back(0);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat);
-                icon.points.push_back(-(int)foot * sin(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
-                icon.points.push_back(-(int)foot * sin(3.141 * aoa / 180));
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * aoa / 180));
+                icon.points.push_back(-(int)foot * sin(3.141 * ((apparent_wind_dir - aoa + apparent_wind_dir)/2) / 180) / 3);
+                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((apparent_wind_dir - aoa + apparent_wind_dir)/2) / 180) / 3);
+                icon.points.push_back(-(int)foot * sin(3.141 * (apparent_wind_dir - aoa) / 180));
+                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * (apparent_wind_dir - aoa) / 180));
   
                 //icon.points.push_back(-(int)it_spar->length/MAST_RATIO);
                 //icon.points.push_back((size/2) - bowsprit - tack_on_boat);
@@ -379,7 +459,7 @@ Icon Vessel::PopulateIcon(int window_index){
 
                 for(int i = 0; i < 3; i++){
                     icon.colour.push_back(255);
-                    icon.colour.push_back(255);
+                    icon.colour.push_back(sail_col);
                     icon.colour.push_back(255);
                 }
             }
@@ -419,7 +499,7 @@ Fleet::Fleet(void){
         v0_sp1.position     = 300;
         v0_sp1.length       = 850;
 
-        v0_sp1_sa0.description      = "";
+        v0_sp1_sa0.description      = "Jib";
         v0_sp1_sa0.type             = SAIL_TYPE_FORE;
         v0_sp1_sa0.tack_height      = 50;
         v0_sp1_sa0.tack_position    = 300;
@@ -429,9 +509,10 @@ Fleet::Fleet(void){
         v0_sp1_sa0.deployed         = 1.0f;
         v0_sp1_sa0.sheeted          = 30;
         v0_sp1_sa0.min_sheeted      = 180;
-        v0_sp1_sa0.max_sheeted      = 20;
+        v0_sp1_sa0.max_sheeted      = 15;
+        v0_sp1_sa0.state            = SAIL_STATE_SET;
 
-        v0_sp1_sa1.description      = "";
+        v0_sp1_sa1.description      = "Main";
         v0_sp1_sa1.type             = SAIL_TYPE_AFT;
         v0_sp1_sa1.tack_height      = 50;
         v0_sp1_sa1.tack_position    = 0;
@@ -442,6 +523,7 @@ Fleet::Fleet(void){
         v0_sp1_sa1.sheeted          = 30;
         v0_sp1_sa1.min_sheeted      = 90;
         v0_sp1_sa1.max_sheeted      = 0;
+        v0_sp1_sa1.state            = SAIL_STATE_SET;
 
 
         v0_sp1.sails.push_back(v0_sp1_sa0);
@@ -454,7 +536,7 @@ Fleet::Fleet(void){
         v0.pos_x                    = MAX_SIZE / 2;
         v0.pos_y                    = MAX_SIZE / 2;
         v0.desired_heading          = 0.0f;
-        v0.heading                  = 135.0f;
+        v0.heading                  = 0.0f;
         v0.desired_speed            = 3.5f;
         v0.speed                    = 0.0f;
         v0.apparent_wind_dir        = 45;

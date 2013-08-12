@@ -33,6 +33,8 @@
 #define VESSEL_STATE_ADRIFT     2
 #define VESSEL_STATE_MAKING_WAY 3
 
+#define SAIL_STATE_UNSET        0
+#define SAIL_STATE_SET          1
 
 extern Window windows[MAX_WINDOWS];
 
@@ -40,7 +42,7 @@ struct Sail {
     std::string description;        //
     unsigned int type;              // See "#define SAIL_TYPE_XXX".
     unsigned int tack_height;       // Height of sail's foot above deck.
-    unsigned int tack_position;     // SAIL_TYPE_FORE only: How far the tack is from mast or front of bowsprit.
+    int tack_position;              // SAIL_TYPE_FORE only: How far the tack is from mast or front of bowsprit.
     unsigned int height;            // Height of sail.
     unsigned int foot;              // Length of sail's foot
     float reef_size;                // Size of reef points (ratio of whole sail). A sail that cannot be reefed will be 100%.
@@ -48,6 +50,7 @@ struct Sail {
     float sheeted;                  // Angle the sail is sheeted to.
     float min_sheeted;              // Furthest out sail can be sheeted. (Typically 90deg for a mainsail and no limit for a foresail.)
     float max_sheeted;              // Furthest in sail can be sheeted. (Typically no limit for a mainsail and depends on rigging for a foresail.)
+    int state;                      // One of: SAIL_STATE_SET SAIL_STATE_UNSET
 
 };
 
@@ -66,7 +69,7 @@ struct Vessel {
     unsigned int beam;              // Beam (width).
     unsigned int draft;             // Draft (depth).
     unsigned int displacment;       // Volume of water displaced
-    unsigned int cod;               // Center Of Drag. (pivot point of boat.)
+    int cod;                        // Center Of Drag. (pivot point of boat.)
     std::vector<Spar> spars;        // Contains Spar instances.
 
     unsigned int state;             // See "#define VESSEL_STATE_XXX"

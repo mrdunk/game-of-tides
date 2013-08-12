@@ -406,7 +406,13 @@ void keyboardSecial(int key, int x, int y){
 
 }
 
+static bool lock_refreshChildWindows = 0;
 void refreshChildWindows(void){
+    if(lock_refreshChildWindows){
+        cout << "refreshChildWindows still executing\n";
+        return;
+    }
+    lock_refreshChildWindows = 1;
     glutSetWindow(windows[0].window);
     int i = 1;
     while(i <= MAX_WINDOWS){
@@ -440,6 +446,7 @@ void refreshChildWindows(void){
         }
         ++i;
     }
+    lock_refreshChildWindows = 0;
 }
 
 void renderBitmapString(unsigned int x, unsigned int y, void *font, char *string) {

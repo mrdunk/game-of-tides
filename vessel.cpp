@@ -132,19 +132,11 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
             float force_lift_y = force_lift * sin(PI * apparent_wind_dir / 180);
             force_drag_x = force_drag * sin(PI * apparent_wind_dir / 180);
             force_drag_y = force_drag * cos(PI * apparent_wind_dir / 180);
-//cout << "~ " << coeficient_lift << " " << coeficient_drag << "\n";
-//cout << ". " << (int)force_lift << " " << (int)force_drag << "\n";
-//cout << "* " << (int)force_lift_x << " " << (int)force_drag_x << "\n";
-//cout << "& " << (int)force_lift_y << " " << (int)force_drag_y << "\n";
             force_leway += -force_lift_x -force_drag_x;
             force_forward += force_lift_y - force_drag_y;
 
             force_rotation -= (force_lift_x + force_drag_x) * ((int)cod - centre_of_effort);
             force_heel += (force_lift_x + force_drag_x) * ((it_sail->height * it_sail->deployed) /3 + it_sail->tack_height);
-            cout << "centre_of_effort:\t" << centre_of_effort << "\n";
-            cout << "force_lift_x:    \t" << force_lift_x << "\n";
-            cout << "force_drag_x:    \t" << force_drag_x << "\n";
-            cout << "aoa:\t\t\t" << aoa << "\t" << it_sail->state << "\t" << (force_lift_x + force_drag_x) * ((int)cod - centre_of_effort) << "\n";
         }
     }
 
@@ -163,54 +155,47 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
     double leeway_resistive_force = 0.5 * WATER_DENSITY * boat_area_side * drag_coeficient_side * leeway_speed * std::abs(leeway_speed);
 
     force_forward -= resistive_force;
-//cout << (int)force_leway << "\n" << (int)leeway_resistive_force << "\n";
     force_leway -= leeway_resistive_force;
 
     speed += ((float)force_forward / displacment) / timeslice / 5;
     leeway_speed += ((double)force_leway / displacment) / timeslice / 5;
 
-    cout << "\nforce_rotation: \t" << (long long)force_rotation /100 << "\n";
-    cout << "rudder:         \t" << (float)speed * speed * length << "\n";
-    cout << "displacment:    \t" << displacment << "\n";
-    cout << "\n";
-
     int modified_force_rotation = force_rotation /100;
     int force_rudder = 0;
-    //state = VESSEL_STATE_ADRIFT;
     if(state == VESSEL_STATE_MAKING_WAY){
+
         if(desired_heading < heading){
             force_rudder = -(float)speed * speed * length * 30000;
         } else {
             force_rudder = (float)speed * speed * length * 30000;
         }
+
+        if(heading - desired_heading > 180.0 or heading - desired_heading < -180.0){
+            force_rudder = -force_rudder;
+        }
+
         if(desired_heading - heading > -2 and desired_heading - heading < 2){
             force_rudder /= 10;
         }
     }
     modified_force_rotation += force_rudder;
 
-    cout << "modified_force_rotation:\t" << modified_force_rotation << "\n\n";
-
     heading += (float)modified_force_rotation / displacment / 50;
+    if(heading < -180)
+        heading += 360.0;
+    else if(heading > 180)
+        heading -= 360.0;
 
     /* 1 knot = 0.514444444 m/s. We round to 0.5m/s.
      * pow(2, MIN_RESOLUTION) == 16                   */
     // forwards
-    pos_x += (float)sin(PI * heading / 180) * (float)speed * 16 * 0.5 / timeslice;
-    pos_y += (float)cos(PI * heading / 180) * (float)speed * 16 * 0.5 / timeslice;
+    pos_x += (float)sin(PI * heading / 180.0) * (float)speed * 16.0 * 0.5 / timeslice;
+    pos_y += (float)cos(PI * heading / 180.0) * (float)speed * 16.0 * 0.5 / timeslice;
 
     //leeway
-    pos_x += (float)cos(PI * heading / 180) * (float)leeway_speed * 16 * 0.5 / timeslice;
-    pos_y -= (float)sin(PI * heading / 180) * (float)leeway_speed * 16 * 0.5 / timeslice;
+    pos_x += (float)cos(PI * heading / 180.0) * (float)leeway_speed * 16.0 * 0.5 / timeslice;
+    pos_y -= (float)sin(PI * heading / 180.0) * (float)leeway_speed * 16.0 * 0.5 / timeslice;
 
-//    cout << "force_forward:\t\t" << (int)force_forward << "\n";
-//    cout << "force_leway: \t\t" << (int)force_leway << "\n";
-    cout << "speed: \t\t\t" << speed << "\n";
-    cout << "leeway_speed: \t\t" << leeway_speed << "\n";
-    cout << "heading:\t\t" << heading << "\n";
-//    cout << "wind_dir:\t\t" << wind_dir << "\n";
-    cout << "apparent_wind_dir:\t" << apparent_wind_dir << "\n";
-//    cout << "apparent_wind_speed:\t" << apparent_wind_speed << "\n";
 }
 
 Icon Vessel::PopulateIcon(int window_index){

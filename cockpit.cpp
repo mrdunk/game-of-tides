@@ -24,7 +24,7 @@ void Cockpit::Draw(void){
     _data_points.clear();
     _data_colour.clear();
 
-    unsigned int selected_vessel = 0;
+    unsigned int selected_vessel = 2;
     if(vessels.vessels.size() > selected_vessel){
         //cout << vessels.vessels[selected_vessel].description << "\n";
         /* Rather than re-position the view, we re-position the boats 

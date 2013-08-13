@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     testMap.Draw();
     //testMap.SetView(0, 0, 40000, 0);
     
-    cockpit.SetView(0, 0, 40000, 0);
+    cockpit.SetView(0, 0, 10000, 0);
 
     testViewport2.SetView(0, 0, 0.5, 0);
     testViewport3.SetView(0, 0, 1, 45);

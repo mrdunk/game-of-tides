@@ -547,6 +547,7 @@ void Map::DrawBoats(void){
     icon.key = 1;
     while(icon.key != 0){
         icon = vessels.NextIcon(_window_index);
+        cout << icon.key << "\t" << icon.pos_x << " , " << icon.pos_y << " $\n";
         if(icon.scale){
             Icon_key key;
             key.type = ICON_TYPE_VESSEL;

@@ -60,12 +60,16 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         force_forward += -force_drag_y;
 
         if(it_spar->type == SPAR_TYPE_BOWSPRIT){
-            force_rotation -= force_drag_x * (cod + it_spar->length /2);
+            force_rotation -= force_drag_x * (cod + it_spar->length /2) / length;
         }
         else if(it_spar->type == SPAR_TYPE_MAST){
-            force_rotation -= force_drag_x * (cod - it_spar->position);
+            force_rotation -= force_drag_x * ((int)cod - (int)it_spar->position) / (int)length;
             force_heel += force_drag_x * it_spar->length /2;
         }
+        
+        //cout << it_spar->description << "\t" << (int)(force_drag_x * ((int)cod - (int)it_spar->position) / (int)length) << "\n";
+        //cout << "\t\t" << ((int)cod - (int)it_spar->position) / (int)length << "\n";
+
         for(std::vector<Sail>::iterator it_sail = it_spar->sails.begin() ; it_sail != it_spar->sails.end(); ++it_sail){
             int sail_area = (float)it_sail->height * it_sail->foot * it_sail->deployed / 2;
 
@@ -135,7 +139,7 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
             force_leway += -force_lift_x -force_drag_x;
             force_forward += force_lift_y - force_drag_y;
 
-            force_rotation -= (force_lift_x + force_drag_x) * ((int)cod - centre_of_effort);
+            force_rotation -= (force_lift_x + force_drag_x) * (cod - centre_of_effort) / length;
             force_heel += (force_lift_x + force_drag_x) * ((it_sail->height * it_sail->deployed) /3 + it_sail->tack_height);
         }
     }
@@ -160,14 +164,13 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
     speed += ((float)force_forward / displacment) / timeslice / 5;
     leeway_speed += ((double)force_leway / displacment) / timeslice / 5;
 
-    int modified_force_rotation = force_rotation /100;
-    int force_rudder = 0;
+    long force_rudder = 0;
     if(state == VESSEL_STATE_MAKING_WAY){
 
         if(desired_heading < heading){
-            force_rudder = -(float)speed * speed * length * 30000;
+            force_rudder = -(double)speed * speed * length  * length *2;
         } else {
-            force_rudder = (float)speed * speed * length * 30000;
+            force_rudder = (double)speed * speed * length  * length *2;
         }
 
         if(heading - desired_heading > 180.0 or heading - desired_heading < -180.0){
@@ -177,10 +180,16 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         if(desired_heading - heading > -2 and desired_heading - heading < 2){
             force_rudder /= 10;
         }
+        //cout << description << "\t" << heading << "\t" << desired_heading << "\t" << force_rudder << "\n";
     }
-    modified_force_rotation += force_rudder;
+    cout << description << "\t" << (int)force_rotation << "\t" << force_rudder << "\n";
+    cout << heading << "\t" << desired_heading << "\n";
+    
+    force_rotation += force_rudder;
 
-    heading += (float)modified_force_rotation / displacment / 50;
+    cout << (int)force_rotation << "\t" << displacment << "\t" << force_rotation/displacment << "\n\n";
+
+    heading += force_rotation / displacment / 4;
     if(heading < -180)
         heading += 360.0;
     else if(heading > 180)
@@ -461,9 +470,13 @@ Fleet::Fleet(void){
     if(!vessels.size()){
         StartIcon();
 
+        Vessel v00;
+        vessels.push_back(v00);
+
+
         Vessel v0;
         Spar v0_sp0, v0_sp1;
-        Sail v0_sp1_sa0, v0_sp1_sa1;
+        Sail v0_sp1_sa0, v0_sp1_sa1, v0_sp0_sa2;
 
         v0.description  = "Test skiff";
         v0.type         = VESSEL_TYPE_BOAT;
@@ -474,12 +487,12 @@ Fleet::Fleet(void){
         v0.cod          = 400;
 
 
-        v0_sp0.description  = "";
+        v0_sp0.description  = "Bowsprit";
         v0_sp0.type         = SPAR_TYPE_BOWSPRIT;
         v0_sp0.position     = 0;
         v0_sp0.length       = 100;
 
-        v0_sp1.description  = "";
+        v0_sp1.description  = "Mast";
         v0_sp1.type         = SPAR_TYPE_MAST;
         v0_sp1.position     = 300;
         v0_sp1.length       = 850;
@@ -487,11 +500,11 @@ Fleet::Fleet(void){
         v0_sp1_sa0.description      = "Jib";
         v0_sp1_sa0.type             = SAIL_TYPE_FORE;
         v0_sp1_sa0.tack_height      = 50;
-        v0_sp1_sa0.tack_position    = 300;
+        v0_sp1_sa0.tack_position    = 250;
         v0_sp1_sa0.height           = 800;
         v0_sp1_sa0.foot             = 350;
         v0_sp1_sa0.reef_size        = 0.2f;
-        v0_sp1_sa0.deployed         = 1.0f;
+        v0_sp1_sa0.deployed         = 0.0f;
         v0_sp1_sa0.sheeted          = 30;
         v0_sp1_sa0.min_sheeted      = 180;
         v0_sp1_sa0.max_sheeted      = 15;
@@ -502,17 +515,30 @@ Fleet::Fleet(void){
         v0_sp1_sa1.tack_height      = 50;
         v0_sp1_sa1.tack_position    = 0;
         v0_sp1_sa1.height           = 800;
-        v0_sp1_sa1.foot             = 400;
+        v0_sp1_sa1.foot             = 450;
         v0_sp1_sa1.reef_size        = 0.2f;
-        v0_sp1_sa1.deployed         = 1.0f;
+        v0_sp1_sa1.deployed         = 0.0f;
         v0_sp1_sa1.sheeted          = 30;
         v0_sp1_sa1.min_sheeted      = 90;
         v0_sp1_sa1.max_sheeted      = 0;
         v0_sp1_sa1.state            = SAIL_STATE_SET;
 
+        v0_sp0_sa2.description      = "Jib";
+        v0_sp0_sa2.type             = SAIL_TYPE_FORE;
+        v0_sp0_sa2.tack_height      = 50;
+        v0_sp0_sa2.tack_position    = -100;
+        v0_sp0_sa2.height           = 800;
+        v0_sp0_sa2.foot             = 250;
+        v0_sp0_sa2.reef_size        = 0.2f;
+        v0_sp0_sa2.deployed         = 0.0f;
+        v0_sp0_sa2.sheeted          = 30;
+        v0_sp0_sa2.min_sheeted      = 180;
+        v0_sp0_sa2.max_sheeted      = 15;
+        v0_sp0_sa2.state            = SAIL_STATE_SET;
 
         v0_sp1.sails.push_back(v0_sp1_sa0);
         v0_sp1.sails.push_back(v0_sp1_sa1);
+        v0_sp0.sails.push_back(v0_sp0_sa2);
 
         v0.spars.push_back(v0_sp0);
         v0.spars.push_back(v0_sp1);
@@ -529,6 +555,145 @@ Fleet::Fleet(void){
         v0.last_updated             = 0;
 
         vessels.push_back(v0);
+
+
+        Vessel v1;
+        Spar v1_sp0, v1_sp1, v1_sp2, v1_sp3;
+                
+        v1.description  = "Schooner";
+        v1.type         = VESSEL_TYPE_BOAT;
+        v1.length       = 4800;
+        v1.beam         = 690;
+        v1.draft        = 280;
+        v1.displacment  = v1.length * v1.beam * v1.draft / 4;
+        v1.cod          = 2400;
+
+
+        v1_sp0.description  = "Bowsprit";
+        v1_sp0.type         = SPAR_TYPE_BOWSPRIT;
+        v1_sp0.position     = 0;
+        v1_sp0.length       = 1000;
+
+        v1_sp1.description  = "Fore Mast";
+        v1_sp1.type         = SPAR_TYPE_MAST;
+        v1_sp1.position     = 1200;
+        v1_sp1.length       = 2700;
+
+        v1_sp2.description  = "Main Mast";
+        v1_sp2.type         = SPAR_TYPE_MAST;
+        v1_sp2.position     = 2400;
+        v1_sp2.length       = 2900;
+        
+        v1_sp3.description  = "Aft Mast";
+        v1_sp3.type         = SPAR_TYPE_MAST;
+        v1_sp3.position     = 3600;
+        v1_sp3.length       = 2500;
+
+        v1.spars.push_back(v1_sp0);
+        v1.spars.push_back(v1_sp1);
+        v1.spars.push_back(v1_sp2);
+        v1.spars.push_back(v1_sp3);
+
+
+        v1.state                    = VESSEL_STATE_MAKING_WAY;
+        v1.pos_x                    = MAX_SIZE / 2 + 160;
+        v1.pos_y                    = MAX_SIZE / 2;
+        v1.desired_heading          = 0.0f;
+        v1.heading                  = 0.0f;
+        v1.desired_speed            = 3.5f;
+        v1.speed                    = 0.0f;
+        v1.apparent_wind_dir        = 45;
+        v1.apparent_wind_speed      = 10.0f;
+        v1.last_updated             = 0;
+
+        vessels.push_back(v1);
+
+
+        Vessel v2;
+        Spar v2_sp0, v2_sp1;
+        Sail v2_sp1_sa0, v2_sp1_sa1, v2_sp0_sa2;
+
+        v2.description  = "Test skiff 2";
+        v2.type         = VESSEL_TYPE_BOAT;
+        v2.length       = 3200;
+        v2.beam         = 800;
+        v2.draft        = 600;
+        v2.displacment  = v2.length * v2.beam * v2.draft /4;
+        v2.cod          = 1600;
+
+
+        v2_sp0.description  = "Bowsprit";
+        v2_sp0.type         = SPAR_TYPE_BOWSPRIT;
+        v2_sp0.position     = 0;
+        v2_sp0.length       = 400;
+
+        v2_sp1.description  = "Mast";
+        v2_sp1.type         = SPAR_TYPE_MAST;
+        v2_sp1.position     = 1200;
+        v2_sp1.length       = 3400;
+
+        v2_sp1_sa0.description      = "Jib";
+        v2_sp1_sa0.type             = SAIL_TYPE_FORE;
+        v2_sp1_sa0.tack_height      = 100;
+        v2_sp1_sa0.tack_position    = 1000;
+        v2_sp1_sa0.height           = 3200;
+        v2_sp1_sa0.foot             = 1400;
+        v2_sp1_sa0.reef_size        = 0.2f;
+        v2_sp1_sa0.deployed         = 1.0f;
+        v2_sp1_sa0.sheeted          = 30;
+        v2_sp1_sa0.min_sheeted      = 180;
+        v2_sp1_sa0.max_sheeted      = 15;
+        v2_sp1_sa0.state            = SAIL_STATE_SET;
+
+        v2_sp1_sa1.description      = "Main";
+        v2_sp1_sa1.type             = SAIL_TYPE_AFT;
+        v2_sp1_sa1.tack_height      = 200;
+        v2_sp1_sa1.tack_position    = 0;
+        v2_sp1_sa1.height           = 3200;
+        v2_sp1_sa1.foot             = 1800;
+        v2_sp1_sa1.reef_size        = 0.2f;
+        v2_sp1_sa1.deployed         = 1.0f;
+        v2_sp1_sa1.sheeted          = 30;
+        v2_sp1_sa1.min_sheeted      = 90;
+        v2_sp1_sa1.max_sheeted      = 0;
+        v2_sp1_sa1.state            = SAIL_STATE_SET;
+
+        v2_sp0_sa2.description      = "Jib";
+        v2_sp0_sa2.type             = SAIL_TYPE_FORE;
+        v2_sp0_sa2.tack_height      = 50;
+        v2_sp0_sa2.tack_position    = -400;
+        v2_sp0_sa2.height           = 3200;
+        v2_sp0_sa2.foot             = 1000;
+        v2_sp0_sa2.reef_size        = 0.2f;
+        v2_sp0_sa2.deployed         = 1.0f;
+        v2_sp0_sa2.sheeted          = 30;
+        v2_sp0_sa2.min_sheeted      = 180;
+        v2_sp0_sa2.max_sheeted      = 15;
+        v2_sp0_sa2.state            = SAIL_STATE_SET;
+
+        v2_sp1.sails.push_back(v2_sp1_sa0);
+        v2_sp1.sails.push_back(v2_sp1_sa1);
+        v2_sp0.sails.push_back(v2_sp0_sa2);
+
+        v2.spars.push_back(v2_sp0);
+        v2.spars.push_back(v2_sp1);
+
+        v2.state                    = VESSEL_STATE_MAKING_WAY;
+        v2.pos_x                    = MAX_SIZE / 2 - 16*20;
+        v2.pos_y                    = MAX_SIZE / 2;
+        v2.desired_heading          = 0.0f;
+        v2.heading                  = 0.0f;
+        v2.desired_speed            = 3.5f;
+        v2.speed                    = 0.0f;
+        v2.apparent_wind_dir        = 45;
+        v2.apparent_wind_speed      = 10.0f;
+        v2.last_updated             = 0;
+
+        vessels.push_back(v2);
+
+        Vessel v3;
+        vessels.push_back(v3);
+
     }
 }
 

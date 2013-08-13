@@ -94,6 +94,7 @@ struct Vessel {
 class Fleet {
     private:
         unsigned int _vessel_itterater;
+        static bool _fleet_lock;
     public:
         static std::vector<Vessel> vessels;    // Contains all instances of Vessel.
         Fleet(void);

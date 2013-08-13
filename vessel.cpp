@@ -182,12 +182,12 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         }
         //cout << description << "\t" << heading << "\t" << desired_heading << "\t" << force_rudder << "\n";
     }
-    cout << description << "\t" << (int)force_rotation << "\t" << force_rudder << "\n";
-    cout << heading << "\t" << desired_heading << "\n";
+    //cout << description << "\t" << (int)force_rotation << "\t" << force_rudder << "\n";
+    //cout << heading << "\t" << desired_heading << "\n";
     
     force_rotation += force_rudder;
 
-    cout << (int)force_rotation << "\t" << displacment << "\t" << force_rotation/displacment << "\n\n";
+    //cout << (int)force_rotation << "\t" << displacment << "\t" << force_rotation/displacment << "\n\n";
 
     heading += force_rotation / displacment / 4;
     if(heading < -180)
@@ -465,13 +465,13 @@ Icon Vessel::PopulateIcon(int window_index){
 }
 
 std::vector<Vessel> Fleet::vessels;
+bool Fleet::_fleet_lock = 0;
 
 Fleet::Fleet(void){
+    while(_fleet_lock);
     if(!vessels.size()){
+        _fleet_lock = 1;
         StartIcon();
-
-        Vessel v00;
-        vessels.push_back(v00);
 
 
         Vessel v0;
@@ -691,23 +691,23 @@ Fleet::Fleet(void){
 
         vessels.push_back(v2);
 
-        Vessel v3;
-        vessels.push_back(v3);
-
     }
+    _fleet_lock = 0;
 }
 
 Icon Fleet::NextIcon(int window_index){
     Icon icon;
     icon.scale = 0;
-    icon.key = 0;
-    while(icon.scale == 0){
-        if(_vessel_itterater >= vessels.size())
+    icon.key = -1;
+    while(icon.key == -1){
+        cout << "Fleet::NextIcon " << _vessel_itterater << "\t";
+        if(_vessel_itterater >= vessels.size()){
+            cout << " .\n\n";
             break;
+        }
         icon = vessels.at(_vessel_itterater).PopulateIcon(window_index);
-        //cout << "Fleet::NextIcon vessels: pos_x: " << vessels.at(_vessel_itterater).pos_x << "\tpos_y: " << vessels.at(_vessel_itterater).pos_y << "\n";
-        //cout << "Fleet::NextIcon icon:    pos_x: " << icon.pos_x << "\tpos_y: " << icon.pos_y << "\n";
         icon.key = ++_vessel_itterater;
+        cout << icon.key << "\n";
     }
     return icon;
 }

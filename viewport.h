@@ -98,7 +98,7 @@ struct Icon_key{
 };
 
 struct Icon {
-    unsigned int key;               // Key should be unique for this ICON_TYPE_XXX. 
+    int key;                        // Key should be unique for this ICON_TYPE_XXX. 
     float angle;                    // in degrees.
     float scale;
     bool fixed_size;                // Stay the same size on screen as we zoom in.

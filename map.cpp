@@ -544,11 +544,11 @@ void Map::DrawBoats(void){
     vessels.StartIcon();
     Icon icon;
     icon.scale = 0;
-    icon.key = 1;
-    while(icon.key != 0){
+    icon.key = 0;
+    while(icon.key != -1){
         icon = vessels.NextIcon(_window_index);
-        cout << icon.key << "\t" << icon.pos_x << " , " << icon.pos_y << " $\n";
-        if(icon.scale){
+        if(icon.key != -1){
+            cout << icon.key << "\t" << icon.pos_x << " , " << icon.pos_y << " $\n";
             Icon_key key;
             key.type = ICON_TYPE_VESSEL;
             key.key = icon.key;

@@ -468,8 +468,13 @@ std::vector<Vessel> Fleet::vessels;
 bool Fleet::_fleet_lock = 0;
 
 Fleet::Fleet(void){
-    while(_fleet_lock);
+    cout << "Fleet::Fleet\n";
+    while(_fleet_lock){
+        cout << "." << flush;
+    }
+    cout << "\n";
     if(!vessels.size()){
+         cout << "*\n";;
         _fleet_lock = 1;
         StartIcon();
 
@@ -482,8 +487,8 @@ Fleet::Fleet(void){
         v0.type         = VESSEL_TYPE_BOAT;
         v0.length       = 800;
         v0.beam         = 200;
-        v0.draft        = 150;
-        v0.displacment  = 800*200*150/4;
+        v0.draft        = 100;
+        v0.displacment  = v0.length * v0.beam * v0.draft /4;
         v0.cod          = 400;
 
 
@@ -504,7 +509,7 @@ Fleet::Fleet(void){
         v0_sp1_sa0.height           = 800;
         v0_sp1_sa0.foot             = 350;
         v0_sp1_sa0.reef_size        = 0.2f;
-        v0_sp1_sa0.deployed         = 0.0f;
+        v0_sp1_sa0.deployed         = 1.0f;
         v0_sp1_sa0.sheeted          = 30;
         v0_sp1_sa0.min_sheeted      = 180;
         v0_sp1_sa0.max_sheeted      = 15;
@@ -517,7 +522,7 @@ Fleet::Fleet(void){
         v0_sp1_sa1.height           = 800;
         v0_sp1_sa1.foot             = 450;
         v0_sp1_sa1.reef_size        = 0.2f;
-        v0_sp1_sa1.deployed         = 0.0f;
+        v0_sp1_sa1.deployed         = 1.0f;
         v0_sp1_sa1.sheeted          = 30;
         v0_sp1_sa1.min_sheeted      = 90;
         v0_sp1_sa1.max_sheeted      = 0;
@@ -530,7 +535,7 @@ Fleet::Fleet(void){
         v0_sp0_sa2.height           = 800;
         v0_sp0_sa2.foot             = 250;
         v0_sp0_sa2.reef_size        = 0.2f;
-        v0_sp0_sa2.deployed         = 0.0f;
+        v0_sp0_sa2.deployed         = 1.0f;
         v0_sp0_sa2.sheeted          = 30;
         v0_sp0_sa2.min_sheeted      = 180;
         v0_sp0_sa2.max_sheeted      = 15;
@@ -559,6 +564,7 @@ Fleet::Fleet(void){
 
         Vessel v1;
         Spar v1_sp0, v1_sp1, v1_sp2, v1_sp3;
+        Sail v1_sp0_sa0, v1_sp0_sa1, v1_sp0_sa2, v1_sp1_sa0, v1_sp1_sa1, v1_sp2_sa0, v1_sp3_sa0;
                 
         v1.description  = "Schooner";
         v1.type         = VESSEL_TYPE_BOAT;
@@ -576,18 +582,117 @@ Fleet::Fleet(void){
 
         v1_sp1.description  = "Fore Mast";
         v1_sp1.type         = SPAR_TYPE_MAST;
-        v1_sp1.position     = 1200;
+        v1_sp1.position     = 1100;
         v1_sp1.length       = 2700;
 
         v1_sp2.description  = "Main Mast";
         v1_sp2.type         = SPAR_TYPE_MAST;
-        v1_sp2.position     = 2400;
+        v1_sp2.position     = 2250;
         v1_sp2.length       = 2900;
         
-        v1_sp3.description  = "Aft Mast";
+        v1_sp3.description  = "Mizzen";
         v1_sp3.type         = SPAR_TYPE_MAST;
-        v1_sp3.position     = 3600;
+        v1_sp3.position     = 3400;
         v1_sp3.length       = 2500;
+
+        v1_sp1_sa0.description      = "Schooner Sail";
+        v1_sp1_sa0.type             = SAIL_TYPE_AFT;
+        v1_sp1_sa0.tack_height      = 200;
+        v1_sp1_sa0.tack_position    = 0;
+        v1_sp1_sa0.height           = 1700;
+        v1_sp1_sa0.foot             = 1100;
+        v1_sp1_sa0.reef_size        = 0.2f;
+        v1_sp1_sa0.deployed         = 1.0f;
+        v1_sp1_sa0.sheeted          = 30;
+        v1_sp1_sa0.min_sheeted      = 90;
+        v1_sp1_sa0.max_sheeted      = 0;
+        v1_sp1_sa0.state            = SAIL_STATE_SET;
+
+        v1_sp2_sa0.description      = "Main Sail";
+        v1_sp2_sa0.type             = SAIL_TYPE_AFT;
+        v1_sp2_sa0.tack_height      = 200;
+        v1_sp2_sa0.tack_position    = 0;
+        v1_sp2_sa0.height           = 2700;
+        v1_sp2_sa0.foot             = 1100;
+        v1_sp2_sa0.reef_size        = 0.2f;
+        v1_sp2_sa0.deployed         = 1.0f;
+        v1_sp2_sa0.sheeted          = 30;
+        v1_sp2_sa0.min_sheeted      = 90;
+        v1_sp2_sa0.max_sheeted      = 0;
+        v1_sp2_sa0.state            = SAIL_STATE_SET;
+
+        v1_sp3_sa0.description      = "Mizzen Sail";
+        v1_sp3_sa0.type             = SAIL_TYPE_AFT;
+        v1_sp3_sa0.tack_height      = 200;
+        v1_sp3_sa0.tack_position    = 0;
+        v1_sp3_sa0.height           = 2300;
+        v1_sp3_sa0.foot             = 1100;
+        v1_sp3_sa0.reef_size        = 0.2f;
+        v1_sp3_sa0.deployed         = 1.0f;
+        v1_sp3_sa0.sheeted          = 30;
+        v1_sp3_sa0.min_sheeted      = 90;
+        v1_sp3_sa0.max_sheeted      = 0;
+        v1_sp3_sa0.state            = SAIL_STATE_SET;
+
+        v1_sp1_sa1.description      = "Fore Sail";
+        v1_sp1_sa1.type             = SAIL_TYPE_FORE;
+        v1_sp1_sa1.tack_height      = 100;
+        v1_sp1_sa1.tack_position    = 1100;
+        v1_sp1_sa1.height           = 1700;
+        v1_sp1_sa1.foot             = 1100;
+        v1_sp1_sa1.reef_size        = 0.2f;
+        v1_sp1_sa1.deployed         = 1.0f;
+        v1_sp1_sa1.sheeted          = 30;
+        v1_sp1_sa1.min_sheeted      = 180;
+        v1_sp1_sa1.max_sheeted      = 15;
+        v1_sp1_sa1.state            = SAIL_STATE_SET;
+
+        v1_sp0_sa0.description      = "Inner Jib";
+        v1_sp0_sa0.type             = SAIL_TYPE_FORE;
+        v1_sp0_sa0.tack_height      = 100;
+        v1_sp0_sa0.tack_position    = -500;
+        v1_sp0_sa0.height           = 1700;
+        v1_sp0_sa0.foot             = 600;
+        v1_sp0_sa0.reef_size        = 0.2f;
+        v1_sp0_sa0.deployed         = 1.0f;
+        v1_sp0_sa0.sheeted          = 30;
+        v1_sp0_sa0.min_sheeted      = 180;
+        v1_sp0_sa0.max_sheeted      = 15;
+        v1_sp0_sa0.state            = SAIL_STATE_SET;
+
+        v1_sp0_sa1.description      = "Outer Jib";
+        v1_sp0_sa1.type             = SAIL_TYPE_FORE;
+        v1_sp0_sa1.tack_height      = 100;
+        v1_sp0_sa1.tack_position    = -1000;
+        v1_sp0_sa1.height           = 1700;
+        v1_sp0_sa1.foot             = 600;
+        v1_sp0_sa1.reef_size        = 0.2f;
+        v1_sp0_sa1.deployed         = 1.0f;
+        v1_sp0_sa1.sheeted          = 30;
+        v1_sp0_sa1.min_sheeted      = 180;
+        v1_sp0_sa1.max_sheeted      = 15;
+        v1_sp0_sa1.state            = SAIL_STATE_SET;
+
+        v1_sp0_sa2.description      = "Top Jib";
+        v1_sp0_sa2.type             = SAIL_TYPE_FORE;
+        v1_sp0_sa2.tack_height      = 1600;
+        v1_sp0_sa2.tack_position    = -500;
+        v1_sp0_sa2.height           = 1100;
+        v1_sp0_sa2.foot             = 1600;
+        v1_sp0_sa2.reef_size        = 0.2f;
+        v1_sp0_sa2.deployed         = 1.0f;
+        v1_sp0_sa2.sheeted          = 30;
+        v1_sp0_sa2.min_sheeted      = 180;
+        v1_sp0_sa2.max_sheeted      = 15;
+        v1_sp0_sa2.state            = SAIL_STATE_SET;
+
+        v1_sp0.sails.push_back(v1_sp0_sa0);
+        v1_sp0.sails.push_back(v1_sp0_sa1);
+        v1_sp0.sails.push_back(v1_sp0_sa2);
+        v1_sp1.sails.push_back(v1_sp1_sa0);
+        v1_sp1.sails.push_back(v1_sp1_sa1);
+        v1_sp2.sails.push_back(v1_sp2_sa0);
+        v1_sp3.sails.push_back(v1_sp3_sa0);
 
         v1.spars.push_back(v1_sp0);
         v1.spars.push_back(v1_sp1);
@@ -693,6 +798,7 @@ Fleet::Fleet(void){
 
     }
     _fleet_lock = 0;
+    cout << "Fleet::Fleet -\n";
 }
 
 Icon Fleet::NextIcon(int window_index){

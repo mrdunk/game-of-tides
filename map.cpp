@@ -18,7 +18,7 @@ Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int lo
     windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
     windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
     
-    vessels.CalculateVessels(data.wind_speed, data.wind_dir);
+//    vessels.CalculateVessels(data.wind_speed, data.wind_dir);
     DrawBoats();
 }
 

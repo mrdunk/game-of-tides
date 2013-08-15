@@ -3,6 +3,7 @@
 #include <thread>
 #include <time.h>
 #include <stdio.h>
+#include "time_code.c"
 
 //#include <google/profiler.h>
 //#include <google/heap-profiler.h>
@@ -41,16 +42,23 @@ void housekeeping(int* shutdown){
 }
 
 void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
+    usleep(1000000);     // 1000ms to allow boats to initialise in Map thread.
     Fleet vessels;
     Data data;
+    timestamp_t then, now;
+    then = now = get_timestamp();
     while(*shutdown == 0){
-        usleep(100000);     // 100ms
-        //usleep(1000000);
-        //cout << "tick\n";
+        while((int)(now - then) / 1000.0L < 100){
+            usleep(1000);
+            now = get_timestamp();
+        }
+        cout << "tick " << (int)(now - then) / 1000.0L << "\n";
+
         vessels.CalculateVessels(data.wind_speed, data.wind_dir);
         p_testMap->DrawBoats();
-        
         p_cockpit->Draw();
+
+        then = get_timestamp();
     }
     ++(*shutdown);
     cout << "closing drawBoats\n";

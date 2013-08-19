@@ -612,6 +612,7 @@ void Viewport::SetView(int view_x, int view_y, float zoom, int rotation){
     windows[_window_index].zoom = zoom;
     windows[_window_index].rotation = rotation;
     windows[_window_index].resize = 1;
+    windows[_window_index].dirty = 1;
 }
 
 void Viewport::Draw(void){

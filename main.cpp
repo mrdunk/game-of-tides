@@ -71,15 +71,15 @@ int main(int argc, char** argv)
 
     int shutdown = 0;
 
-    thread canvas(Init,800,0,800,800,&shutdown,argc,argv);
+    thread canvas(Init,800,0,1000,800,&shutdown,argc,argv);
     thread t(signal_thread, &shutdown);
     thread t2(housekeeping, &shutdown);
 
     //Map testMap(SIG_DEST_MAP, 0, 200, 600, 600, LOW_RESOLUTION);
-    Cockpit cockpit(SIG_DEST_TEST, 0, 0, 200, 200);
-    Viewport testViewport2(SIG_DEST_TEST, 400, 0, 400, 200);
-    Viewport testViewport3(SIG_DEST_TEST, 250, 50, 200, 100);
-    Map testMap(SIG_DEST_MAP, 0, 200, 600, 600, LOW_RESOLUTION);
+    Cockpit cockpit(SIG_DEST_TEST, 800, 0, 200, 200);
+    Viewport testViewport2(SIG_DEST_TEST, 800, 200, 200, 200);
+    Viewport testViewport3(SIG_DEST_TEST, 800, 350, 100, 200);
+    Map testMap(SIG_DEST_MAP, 0, 0, 800, 800, LOW_RESOLUTION);
 
     testMap.Draw();
     //testMap.SetView(0, 0, 40000, 0);

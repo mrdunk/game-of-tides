@@ -242,7 +242,7 @@ std::unordered_map<std::string, MapPoint>* Data::p_mapData;
 unsigned int Data::waterlevel = 0;
 unsigned int Data::height_z_min;
 unsigned int Data::height_z_max;
-float Data::wind_speed = 10;
+float Data::wind_speed = 20;
 float Data::wind_dir = 90;
 
 Data::Data(void){
@@ -272,7 +272,7 @@ Data::Data(void){
         float landmass = 0;
         int INIT_RES = 128;
         while((int)(LANDMASS * 10) != (int)(landmass * 10)){
-            cout << "waterleveldd: " << waterlevel << "\tlandmass: " << landmass << "\n";
+            cout << "waterlevel: " << waterlevel << "\tlandmass: " << landmass << "\n";
             int drycount = 0;
             int totalcount = 0;
             for(int row = MAX_SIZE/INIT_RES; row < MAX_SIZE; row+=(MAX_SIZE/INIT_RES)){
@@ -297,14 +297,14 @@ Data::Data(void){
     //testcoord.Set_waterlevel(waterlevel);
 }
 
-void Data::Cull(void){
+void Data::Cull(int* shutdown){
     //cout << mapData.size() << "\t";
     //int counter;
     std::unordered_map<std::string, MapPoint>::const_iterator it;
     int count;
     std::string key;
     while(1){
-        usleep(1);                  // This delay is to make the thread drawing the screen more likely to aquirethe lock.
+        usleep(1);                  // This delay is to make the thread drawing the screen more likely to aquire the lock.
         g_mapData_lock.lock();
         it = mapData.find(key);
         if(it == mapData.end())
@@ -315,7 +315,7 @@ void Data::Cull(void){
             if((int)it->second.last_accesed < (int)it->second.counter - MAX_DATA_SIZE){
                 mapData.erase(it);
             }
-            if(++it == mapData.end()){
+            if(++it == mapData.end() or *shutdown != 0){
                 g_mapData_lock.unlock();
                 //cout << mapData.size() << "\t" << counter << "\n";
                 return;

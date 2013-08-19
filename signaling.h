@@ -10,6 +10,7 @@
 #define    SIG_TYPE_MOUSE_X 2
 #define    SIG_TYPE_MOUSE_Y 3
 #define    SIG_TYPE_MOUSE_BUT 4
+#define    SIG_TYPE_ICON_CLICK 5
 
 #define    SIG_DEST_ALL 0
 #define    SIG_DEST_TEST 1
@@ -22,14 +23,17 @@
 #define    SIG_VAL_DOWN     4
 #define    SIG_VAL_LEFT     5
 #define    SIG_VAL_RIGHT    6
+#define    SIG_VAL_SNAP     7
 
 struct signal{
     unsigned int type;      // Type of event. 
     unsigned int source;    // Unique id of the code generating signal.
     unsigned int sequence;  // Increases every time a new signal is added.
     unsigned int dest;      // Destination id.
-    unsigned int key;
     int val;
+    int val2;
+    int val3;
+    int key;
 };
 
 class Viewport;             // Declared here to prevent circular dependancy isssue if we included hiewport.h.

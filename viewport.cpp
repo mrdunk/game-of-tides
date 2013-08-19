@@ -10,11 +10,15 @@
 #include <vector>
 #include <math.h>       /* sin */
 #include <algorithm>    // std::max
+#include "time_code.c"
 
 #define PI 3.14159265
 
 #include "viewport.h"
 #include "data.h"
+
+#define TIMING_DEBUG_FPS
+//#define TIMING_DEBUG
 
 using namespace std;
 
@@ -44,12 +48,18 @@ bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned i
     windows[0].width = width; 
     windows[0].height = height;
     windows[0].initialised = 0;
-    windows[0].dirty = 0;
+    windows[0].resize = 0;
+    windows[0].dirty = 1;
     windows[0].data_size = max(width,height);
     windows[0].view_x = 0;
     windows[0].view_y = 0;
     windows[0].zoom = 1;
     windows[0].rotation = 0;
+    windows[0].mouse_x = -1;
+    windows[0].mouse_y = -1;
+    windows[0].mouse_x_rel = -1;
+    windows[0].mouse_y_rel = -1;
+    windows[0].mouse_button = -1;
 
     windows[0].window = glutCreateWindow ("Tides");
     GLenum err=glewInit();
@@ -180,11 +190,24 @@ void Resize(int win_width, int win_height){
 }
 
 int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p_points, std::vector<GLubyte>* p_colour){
+#ifdef TIMING_DEBUG
+    static long total_waiting = 0;
+    static int count_waiting = 0;
+    static long total_aquired = 0;
+    static int count_aquired = 0;
+    static timestamp_t interval = get_timestamp();
+    timestamp_t waiting = get_timestamp();
+#endif
+
     data_mutex->lock();
-    
+        
+#ifdef TIMING_DEBUG
+    timestamp_t aquired = get_timestamp();
+    total_waiting += (aquired - waiting);
+    ++count_waiting;
+#endif
+
     int VertexCount = p_points->size() / 2;
-    //PositionSize = p_points->size() * sizeof(GLint);
-    //ColorSize = p_colour->size() * sizeof(GLubyte);
     VertexCount -= VertexCount % 3;
     GLsizeiptr PositionSize = VertexCount * 2 * sizeof(GLint);
     GLsizeiptr ColorSize = VertexCount * 3 * sizeof(GLubyte);
@@ -206,65 +229,90 @@ int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     
+
+#ifdef TIMING_DEBUG
+    timestamp_t now = get_timestamp();
+#endif
+
     data_mutex->unlock();
+
+#ifdef TIMING_DEBUG
+    ++count_aquired;
+    total_aquired += (now - aquired);
+
+    if((now - interval) / 1000000.0L >= 1){
+        interval = get_timestamp();
+        if(count_waiting > 0 and count_aquired > 0)
+            cout << "LoadVertices waiting: " << (float)total_waiting / count_waiting << "\taquired: " << total_aquired / count_aquired << "\t(" << count_aquired << ")\n";
+        total_waiting = total_aquired = 0;
+        count_waiting = count_aquired = 0;
+    }
+#endif
 
     return VertexCount;
 }
 
 void Display(void){
     //cout << "display " << glutGetWindow() << "\n";
-    
+#ifdef TIMING_DEBUG
+    static timestamp_t interval = get_timestamp();
+    static int count = -1;
+    static int total = 0;
+    timestamp_t then = get_timestamp();
+#endif
+
     int window_index = 0;
     while(window_index < MAX_WINDOWS){
-        //cout << " ** " << window_index << " " << windows[window_index].window << " " << glutGetWindow() << "\n";
         if (windows[window_index].window == glutGetWindow())
             break;
         ++window_index;
     }
 
     /* clear all pixels */
-    glClear (GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     if(!windows[window_index]._p_data_colour)
         return;
 
-    int VertexCount;
-
     /* Do low resolution draw in background if enabled. */
     if(windows[window_index].low_res){
-        VertexCount = LoadVertices(window_index, &windows[window_index].data_low_res_mutex, 
-                               windows[window_index]._p_data_points_low_res, windows[window_index]._p_data_colour_low_res);
-        //cout << "low\n";
+        LoadVertices(window_index, &windows[window_index].data_low_res_mutex, 
+                     windows[window_index]._p_data_points_low_res, windows[window_index]._p_data_colour_low_res);
     }
 
-    /* Standard esolution. */
-    VertexCount = LoadVertices(window_index, &windows[window_index].data_mutex, windows[window_index]._p_data_points, windows[window_index]._p_data_colour);
+    /* Standard resolution. */
+    LoadVertices(window_index, &windows[window_index].data_mutex, windows[window_index]._p_data_points, windows[window_index]._p_data_colour);
 
     /* Text output */
     glPushMatrix();
     glLoadIdentity();       // load default matrix
     gluOrtho2D(0, windows[window_index].width, 0, windows[window_index].height);
 
-    char Result[64];
-    sprintf ( Result, "Triangles: %d", VertexCount / 3 );
-    renderBitmapString(10, 10, GLUT_BITMAP_TIMES_ROMAN_10, Result);
-
-    int pixSize = MAX_SIZE / (windows[window_index].width * windows[window_index].zoom * MIN_RECURSION);
-    sprintf ( Result, "PixelSize: %d m", pixSize );
-    //glColor3f(0, 0, 1);
-    renderBitmapString(10, 20, GLUT_BITMAP_TIMES_ROMAN_10, Result);
-
-    sprintf ( Result, "_zoom: %lf", windows[window_index].zoom);
-    renderBitmapString(10, 30, GLUT_BITMAP_TIMES_ROMAN_10, Result);
+    for(std::map<pair<int,int>,Text>::iterator it = windows[window_index].text_list.begin() ; it != windows[window_index].text_list.end(); ++it){
+        renderBitmapString(it->first.first, it->first.second, it->second.font, it->second.text); 
+    }
 
     glPopMatrix();
 
     /* Draw Icon buffer. */
-    VertexCount = LoadVertices(window_index, &windows[window_index].data_icons_mutex, 
+    LoadVertices(window_index, &windows[window_index].data_icons_mutex, 
                                windows[window_index]._p_data_points_icons, windows[window_index]._p_data_colour_icons);
 
     //glFlush ();
+
     glutSwapBuffers();
+    
+#ifdef TIMING_DEBUG
+    timestamp_t now = get_timestamp();
+    ++count;
+    total += (now - then);
+    if((now - interval) / 1000000.0L >= 1){
+        interval = get_timestamp();
+        cout << "Display " << total / count << "\t(" << count << ")\n";
+        count = 0;
+        total = 0;
+    }
+#endif
 }
 
 void displayBorder(void){
@@ -349,9 +397,42 @@ void mouse_enter_window(int state){
 }
 
 void timer(int value){
-    //cout<<"timer "<<value<<"\n";
+    //cout << "timer " << value << "\n";
+#ifdef TIMING_DEBUG_FPS
+    static timestamp_t then = get_timestamp();
+    static int frame_counter = 0;
+    ++frame_counter;
+#endif  // TIMING_DEBUG_FPS
+#ifdef TIMING_DEBUG
+    static int count_refreshCW = 0;
+    static int total_refreshCW = 0;
+    timestamp_t then_refreshCW = get_timestamp();
+#endif
+
     glutTimerFunc(FRAME_LENGTH, timer, 1);
     refreshChildWindows();
+
+#ifdef TIMING_DEBUG
+    timestamp_t now_refreshCW = get_timestamp();
+    ++count_refreshCW;
+    total_refreshCW += (now_refreshCW - then_refreshCW);
+#endif
+#ifdef TIMING_DEBUG_FPS    
+    timestamp_t now = get_timestamp();
+    //cout << (now - then) << "\n";
+    if((long)(now - then) / 1000000.0L >= 1){
+        then = get_timestamp();
+        cout << frame_counter << " frames/second\n";
+        frame_counter = 0;
+
+#ifdef TIMING_DEBUG
+        cout << "refreshChildWindows " << total_refreshCW / count_refreshCW << "\t(" << count_refreshCW << ")\n";
+        count_refreshCW = 0;
+        total_refreshCW = 0;
+#endif  // TIMING_DEBUG
+    }
+#endif  // TIMING_DEBUG_FPS
+
     static int count = 0;
     if(++count == 10){
         Signal_instance.SwapBuf();
@@ -361,8 +442,6 @@ void timer(int value){
 
 void keyboard(unsigned char key, int x, int y){
     cout << "keyboard " << (int)key << " " << x << "," << y << "\n";
-    //if(key == ' ')
-    //    timer(0);
     if(key == '='){
         signal keypress;
         keypress.type = SIG_TYPE_KEYBOARD;
@@ -413,11 +492,11 @@ void refreshChildWindows(void){
         return;
     }
     lock_refreshChildWindows = 1;
-    glutSetWindow(windows[0].window);
     int i = 1;
     while(i <= MAX_WINDOWS){
-        if(!windows[i].window and windows[i].dirty){
+        if(!windows[i].window and windows[i].resize){
                 cout << " Creating window " << i << "\n" << flush;
+                glutSetWindow(windows[0].window);
                 windows[i].window_border = glutCreateSubWindow(windows[0].window, windows[i].pos_x, windows[i].pos_y, 
                                                                windows[i].width + 2*BORDERWIDTH, windows[i].height + 2*BORDERWIDTH);
                 glutDisplayFunc(displayBorder);
@@ -430,17 +509,24 @@ void refreshChildWindows(void){
                 glutKeyboardFunc(keyboard);
                 glutSpecialFunc(keyboardSecial);
                 glutDisplayFunc(Display);
+
+                _init(i);
+
+                windows[i].resize = 0;
                 windows[i].initialised = 1;
+
         }
-        if(windows[i].dirty){
+        if(windows[i].resize){
                 //cout << " Updating window " << i << "\n" << flush;
                 _init(i);
-                windows[i].dirty = 0;
+                windows[i].resize = 0;
         }
-        if(windows[i].window){
+        if(windows[i].dirty){
             //cout << " * " << i << " " << windows[i]._p_data_points->size() << "\t" << windows[i]._p_data_colour->size() << "\n";
+            //cout << "refreshChildWindows " << windows[i].window << "\n";
             //glutSetWindow(windows[i].window_border);
             //glutPostRedisplay();
+            windows[i].dirty = 0;
             glutSetWindow(windows[i].window);
             glutPostRedisplay();
         }
@@ -449,25 +535,28 @@ void refreshChildWindows(void){
     lock_refreshChildWindows = 0;
 }
 
-void renderBitmapString(unsigned int x, unsigned int y, void *font, char *string) {
-
+int renderBitmapString(unsigned int x, unsigned int y, void *font, char *string) {
+    int retval = 0;
     char *c;
     glRasterPos2f(x, y);
     for (c=string; *c != '\0'; c++) {
         glutBitmapCharacter(font, *c);
+        retval += glutBitmapWidth(font, *c);
     }
+
+    return retval;
 }
 
 Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height){
-    cout << "Viewport::Viewport\n" << flush;
+    cout << "Viewport::Viewport " << label << "\n" << flush;
     _label = label;
     RegisterEndpoint(_label, this);
-    int i = 0;
     /* Wait for Parent Window to be initialised. */
     while(!windows[0].initialised or !windows[0].window);
     glutSetWindow(windows[0].window);
+    int i = 0;
     while(i < MAX_WINDOWS){
-        if(windows[i].window == 0 and windows[i].initialised == 0 and windows[i].dirty == 0){
+        if(windows[i].window == 0 and windows[i].initialised == 0 and windows[i].resize == 0){
             cout << "Viewport::Viewport 3: " << i << "\n" << flush;
             windows[i].window = 0;
             windows[i].window_border = 0;
@@ -476,7 +565,7 @@ Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, u
             windows[i].width = width - 2*BORDERWIDTH;
             windows[i].height = height - 2*BORDERWIDTH;
             windows[i].initialised = 0;
-            windows[i].dirty = 1;
+            windows[i].resize = 1;
             windows[i].data_size = 200;
             windows[i].view_x = 0;
             windows[i].view_y = 0;
@@ -522,7 +611,7 @@ void Viewport::SetView(int view_x, int view_y, float zoom, int rotation){
     windows[_window_index].view_y = view_y;
     windows[_window_index].zoom = zoom;
     windows[_window_index].rotation = rotation;
-    windows[_window_index].dirty = 1;
+    windows[_window_index].resize = 1;
 }
 
 void Viewport::Draw(void){
@@ -588,12 +677,13 @@ void Viewport::AddIcon(Icon_key key, Icon icon){
 }
 
 void Viewport::RedrawIcons(void){
-    //cout << "Viewport::RedrawIcons\n";
+    //cout << "Viewport::RedrawIcons " << _window_index << "\n";
     float scale;
+    windows[_window_index].data_icons_mutex.lock();
     _data_points_icons.clear();
     _data_colour_icons.clear();
     for (std::map<Icon_key,Icon>::iterator it=_icons.begin(); it!=_icons.end(); ++it){
-        //cout << "Viewport::RedrawIcons type: " << it->first.type << "\tkey: " << it->first.key << "\tpos_x: " << it->second.pos_x << "\tpos_y: " << it->second.pos_y << "\n";
+        //cout << it->first.type << " " << it->first.key << "\t" << it->second.pos_x << " , " << it->second.pos_y << "\n";
         scale = it->second.scale;
         if (it->second.fixed_size == 1)
             scale /= _zoom;
@@ -607,6 +697,7 @@ void Viewport::RedrawIcons(void){
             _data_colour_icons.push_back(it->second.colour.at(p * 3 +2));
         }
     }
+    windows[_window_index].data_icons_mutex.unlock();
 }
 
 Icon Viewport::TestIcon(void){
@@ -635,6 +726,14 @@ Icon Viewport::TestIcon(void){
     icon.centre_y = 5;
     icon.pos_x = 50;
     icon.pos_y = 50;
+    icon.key = 1;
 
     return icon;
 }
+
+void Viewport::AddText(int text_pos_x, int text_pos_y, Text text){
+    pair<int,int> key(text_pos_x, text_pos_y);
+
+    windows[_window_index].text_list[key] = text;
+}
+

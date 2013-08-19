@@ -19,6 +19,12 @@ enum
     COLOR_OBJECT = 1
 };
 
+struct Text {
+    void* font;
+    char text[128];
+};
+
+
 struct Window{
     int window;                 // Glut window instance.
     int window_border;          // Thickness of border in pixels.
@@ -27,6 +33,7 @@ struct Window{
     unsigned int width;         // Size in pixels.
     unsigned int height;
     bool initialised;           // Set to 1 when initialisation is complete.
+    bool resize;                // Will be re-scaled if this is set to 1.
     bool dirty;                 // Will be re-drawn if this is set to 1.
     unsigned int data_size;     // Size of displayed data.
     int view_x;                 // position within the displayed data structure. (0,0) is the bottom left.
@@ -54,6 +61,9 @@ struct Window{
     std::vector<GLint>* _p_data_points_icons;
     std::vector<GLubyte>* _p_data_colour_icons;
     std::mutex data_icons_mutex;
+
+    /* Contains text string information. */
+    std::map<std::pair<int,int>,Text> text_list;
 };
 
 extern Window windows[MAX_WINDOWS];
@@ -82,10 +92,13 @@ void keyboard(unsigned char key, int x, int y);
 void keyboardSecial(int key, int x, int y);
 void _close(void);
 void refreshChildWindows(void);
-void renderBitmapString(unsigned int x, unsigned int y, void *font, char *string);
+
+/* Returns width of drawn string. */
+int renderBitmapString(unsigned int x, unsigned int y, void *font, char *string);
 
 #define ICON_TYPE_TEST      1
 #define ICON_TYPE_VESSEL    2
+#define ICON_TYPE_BUTTON    3
 struct Icon_key{
     unsigned int type;
     unsigned int key;
@@ -109,8 +122,6 @@ struct Icon {
     std::vector<GLint> points;
     std::vector<GLubyte> colour;
 };
-
-
 
 class Viewport : public Signal{
     protected:
@@ -155,6 +166,8 @@ class Viewport : public Signal{
         void Clear();
 
         Icon TestIcon(void);
+
+        void AddText(int text_pos_x, int text_pos_y, Text text);
 };
 
 

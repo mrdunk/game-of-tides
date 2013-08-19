@@ -86,7 +86,7 @@ class Data{
         static float wind_dir;
 
         /* Remove old entries from mapData. */
-        void Cull(void);
+        void Cull(int* shutdown);
 };
 
 

@@ -31,10 +31,12 @@ void Map::Draw(void){
 
     Clear();
 
+    cout << "*1\n";
     DrawSection(0, 0, MAX_SIZE, MAX_SIZE, 1);
+    cout << "*2\n";
 
     timestamp_t t1 = get_timestamp();
-    cout << "Map::Draw took " << (double)(t1 - t0) / 1000000.0L << " seconds.\n";
+    cout << "Map::Draw took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
 }
 
 int Map::DrawSection(Task* p_task, int resolution){
@@ -105,14 +107,14 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
         _p_data_points = &_data_points;
         _p_data_colour = &_data_colour;
     }
-    if(_p_data_points->capacity() < 2000000){
+    if(_p_data_points->capacity() < 4000000){
         _p_data_mutex->lock();
-        _p_data_points->reserve(2000000);
+        _p_data_points->reserve(4000000);
         _p_data_mutex->unlock();
     }
-    if(_p_data_colour->capacity() < 3000000){
+    if(_p_data_colour->capacity() < 6000000){
         _p_data_mutex->lock();
-        _p_data_points->reserve(3000000);
+        _p_data_points->reserve(6000000);
         _p_data_mutex->unlock();
     }
     if(_p_data_points->capacity() < _p_data_points->size() * 2){    // TODO * 2 is excessive here. use a more sensible scheme once we know it works.
@@ -258,6 +260,9 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (0);
                 _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
+
+            // Mark window for re-draw.
+            windows[_window_index].dirty = 1;
         }
     }
 //    if(p_progress_x and p_progress_y){
@@ -388,7 +393,7 @@ void Map::ActOnSignal(signal sig){
     //cout << "Viewport::ActOnSignal\n";
     //cout << "Viewport::ActOnSignal " << "\tsig.source: " << sig.source << "\tsig.dest: " << 
     //sig.dest << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
-    if(sig.type == SIG_TYPE_KEYBOARD){
+    if(sig.dest == SIG_DEST_MAP){
         int store_view_x = _view_x;
         int store_view_y = _view_y;
 
@@ -422,6 +427,13 @@ void Map::ActOnSignal(signal sig){
             case SIG_VAL_RIGHT:
                 _view_x += KEY_MOVMENT / _zoom;
                 task.type = TASK_TYPE_PAN;
+                break;
+            case SIG_VAL_SNAP:
+                store_view_x = _view_x = sig.val2;
+                store_view_y = _view_y = sig.val3;
+                task.type = TASK_TYPE_ZOOM;
+                _task_list.clear();
+                _task_list_low_res.clear();
                 break;
         }
         if(_zoom > 40000)
@@ -507,7 +519,6 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
     }
 
     cout << "Map::ProcessTasks " << resolution << " " << p_task_list->size() << "\n";
-    RedrawIcons();
 
     for(std::vector<Task>::iterator it = p_task_list->begin() ; it != p_task_list->end(); ++it){
         //cout << "  resolution: " << resolution << "\ttype: " << it->type << "\tprogress_y: " << it->progress_y << 
@@ -548,7 +559,7 @@ void Map::DrawBoats(void){
     while(icon.key != -1){
         icon = vessels.NextIcon(_window_index);
         if(icon.key != -1){
-            cout << icon.key << "\t" << icon.pos_x << " , " << icon.pos_y << " $\n";
+            //cout << icon.key << "\t" << icon.pos_x << " , " << icon.pos_y << " $\n";
             Icon_key key;
             key.type = ICON_TYPE_VESSEL;
             key.key = icon.key;
@@ -556,5 +567,24 @@ void Map::DrawBoats(void){
         }
     }
     RedrawIcons();
+    windows[_window_index].dirty = 1;
 }
 
+void Map::DrawText(void){
+    Text text;
+    text.font = GLUT_BITMAP_TIMES_ROMAN_10;
+
+    windows[_window_index].data_mutex.lock();
+    sprintf(text.text, "Triangles: %ld", windows[_window_index]._p_data_points->size() / 6 );
+    windows[_window_index].data_mutex.unlock();
+    AddText(10, 10, text);
+
+    int pixSize = MAX_SIZE / (_width * _zoom * MIN_RECURSION);
+    sprintf(text.text, "PixelSize: %d m", pixSize );
+    AddText(10, 20, text);
+
+    sprintf(text.text, "zoom: %d", (int)_zoom );
+    AddText(10, 30, text);
+
+    windows[_window_index].dirty = 1;
+}

@@ -48,6 +48,7 @@ class Map : public Viewport{
         GLubyte WaterCol(float height, int resolution);
 
         void DrawBoats(void);
+        void DrawText(void);
 };
 
 

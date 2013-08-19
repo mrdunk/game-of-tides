@@ -9,7 +9,7 @@
 using namespace std;
 
 void Vessel::Calculate(float wind_speed, float wind_dir){
-    //cout << "Vessel::Calculate " << description << "\n";
+    //cout << "Vessel::Calculate   " << description << "\t" << pos_x << " , " << pos_y << "\n";
     
     //heading = desired_heading;
 
@@ -168,9 +168,9 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
     if(state == VESSEL_STATE_MAKING_WAY){
 
         if(desired_heading < heading){
-            force_rudder = -(double)speed * speed * length  * length *2;
+            force_rudder = -(double)speed * speed * length  * length;
         } else {
-            force_rudder = (double)speed * speed * length  * length *2;
+            force_rudder = (double)speed * speed * length  * length;
         }
 
         if(heading - desired_heading > 180.0 or heading - desired_heading < -180.0){
@@ -180,14 +180,13 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
         if(desired_heading - heading > -2 and desired_heading - heading < 2){
             force_rudder /= 10;
         }
-        //cout << description << "\t" << heading << "\t" << desired_heading << "\t" << force_rudder << "\n";
-    }
-    //cout << description << "\t" << (int)force_rotation << "\t" << force_rudder << "\n";
-    //cout << heading << "\t" << desired_heading << "\n";
-    
-    force_rotation += force_rudder;
 
-    //cout << (int)force_rotation << "\t" << displacment << "\t" << force_rotation/displacment << "\n\n";
+        rudder += (force_rudder - rudder) / 10;
+    }
+    
+    //force_rotation += force_rudder;
+    force_rotation += rudder;
+
 
     heading += force_rotation / displacment / 4;
     if(heading < -180)
@@ -555,8 +554,10 @@ Fleet::Fleet(void){
         v0.heading                  = 0.0f;
         v0.desired_speed            = 3.5f;
         v0.speed                    = 0.0f;
+        v0.leeway_speed             = 0.0f;
         v0.apparent_wind_dir        = 45;
         v0.apparent_wind_speed      = 10.0f;
+        v0.rudder                   = 0;
         v0.last_updated             = 0;
 
         vessels.push_back(v0);
@@ -707,8 +708,10 @@ Fleet::Fleet(void){
         v1.heading                  = 0.0f;
         v1.desired_speed            = 3.5f;
         v1.speed                    = 0.0f;
+        v1.leeway_speed             = 0.0f;
         v1.apparent_wind_dir        = 45;
         v1.apparent_wind_speed      = 10.0f;
+        v1.rudder                   = 0;
         v1.last_updated             = 0;
 
         vessels.push_back(v1);
@@ -790,8 +793,10 @@ Fleet::Fleet(void){
         v2.heading                  = 0.0f;
         v2.desired_speed            = 3.5f;
         v2.speed                    = 0.0f;
+        v2.leeway_speed             = 0.0f;
         v2.apparent_wind_dir        = 45;
         v2.apparent_wind_speed      = 10.0f;
+        v2.rudder                   = 0;
         v2.last_updated             = 0;
 
         vessels.push_back(v2);
@@ -806,14 +811,14 @@ Icon Fleet::NextIcon(int window_index){
     icon.scale = 0;
     icon.key = -1;
     while(icon.key == -1){
-        cout << "Fleet::NextIcon " << _vessel_itterater << "\t";
+        //cout << "Fleet::NextIcon " << _vessel_itterater << "\t";
         if(_vessel_itterater >= vessels.size()){
-            cout << " .\n\n";
+            //cout << " .\n\n";
             break;
         }
         icon = vessels.at(_vessel_itterater).PopulateIcon(window_index);
         icon.key = ++_vessel_itterater;
-        cout << icon.key << "\n";
+        //cout << icon.key << "\n";
     }
     return icon;
 }

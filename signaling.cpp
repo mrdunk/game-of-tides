@@ -78,7 +78,7 @@ void Signal::ServiceSignals(void){
     while(PopEvent(&sig)){
         //cout << "Signal::ServiceSignals " << "\tsig.source: " << sig.source << "\tsig.dest: " << sig.dest << 
         //"\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
-        for ( auto it = _registered_endpoints.begin(); it != _registered_endpoints.end(); ++it ){
+        for (std::unordered_map<unsigned int, Viewport*>::iterator it = _registered_endpoints.begin(); it != _registered_endpoints.end(); ++it ){
             if(it->first == sig.dest){
                 _interupt[sig.dest] = 0;
                 (it->second)->ActOnSignal(sig);

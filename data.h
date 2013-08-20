@@ -13,7 +13,7 @@
 #define GAME_NUMBER 1234566
 #define SEED .15
 #define LANDMASS .2
-#define MAX_DATA_SIZE 2000000
+#define MAX_DATA_SIZE 1000000
 
 extern std::mutex g_mapData_lock;
 
@@ -74,6 +74,7 @@ class Data{
         static unsigned int height_z_max;
         static unsigned int height_z_min;
         static unsigned int waterlevel;
+        std::string _key;
     public:
         Data(void);
         static std::unordered_map<std::string, MapPoint> mapData;
@@ -86,7 +87,7 @@ class Data{
         static float wind_dir;
 
         /* Remove old entries from mapData. */
-        void Cull(int* shutdown);
+        void Cull(unsigned int time_left);
 };
 
 

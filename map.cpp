@@ -3,7 +3,6 @@
 
 #include "map.h"
 #include "data.h"
-#include "time_code.c"
 
 using namespace std;
 
@@ -20,6 +19,8 @@ Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int lo
     
 //    vessels.CalculateVessels(data.wind_speed, data.wind_dir);
     DrawBoats();
+
+    finish_time = get_timestamp() + 1000*1000;  // 1 second in the future.
 }
 
 void Map::Draw(void){
@@ -31,9 +32,22 @@ void Map::Draw(void){
 
     Clear();
 
-    cout << "*1\n";
-    DrawSection(0, 0, MAX_SIZE, MAX_SIZE, 1);
-    cout << "*2\n";
+    Task initialise;
+
+    initialise.type = TASK_TYPE_ZOOM;
+    initialise.x0 = 0;
+    initialise.y0 = 0;
+    initialise.x1 = MAX_SIZE;
+    initialise.y1 = MAX_SIZE;
+    initialise.view_x = MAX_SIZE/2;
+    initialise.view_y = MAX_SIZE/2;
+    initialise.zoom = 1;
+    initialise.progress_x = 0;
+    initialise.progress_y = 0;
+
+    _task_list.push_back (initialise);
+    _task_list_low_res.push_back (initialise);
+    //DrawSection(0, 0, MAX_SIZE, MAX_SIZE, 1);
 
     timestamp_t t1 = get_timestamp();
     cout << "Map::Draw took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
@@ -94,7 +108,7 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
         //cout << "s x0: " << screen_x0 << "\ts y0: " << screen_y0 << "\ts x1: " << screen_x1 << "\ts y1: " << screen_y1 << "\n";
     //}
 
-    /* Must reserve more space in the vertex here because if it re-pages when openGL i reading from it later it causes openGL crash on some platforms. */
+    /* Must reserve more space in the vertex here because if it re-pages when openGL is reading from it later it causes openGL crash on some platforms. */
     std::mutex* _p_data_mutex;
     std::vector<GLint>* _p_data_points;
     std::vector<GLubyte>* _p_data_colour;
@@ -173,6 +187,15 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
             }
             if(col <= 0 or col >= MAX_SIZE)
                 continue;
+            timestamp_t now = get_timestamp();
+            if(now > finish_time){
+                //cout << "TIMEOUT!!\n";
+                if(p_progress_x)
+                    *p_progress_x = col;
+                if(p_progress_y)
+                    *p_progress_y = row;
+                return SIG_VAL_TIMEOUT;
+            }
             int retval = TestInterupt(SIG_DEST_MAP);
             if(retval){
                 cout << "INTERUPT!! " << retval << "\n";
@@ -196,6 +219,8 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
             br.x = col + step_x;
             br.y = row + step_y;
             br.calculateZ(data.p_mapData);
+
+            _p_data_mutex->lock();
 
             _p_data_points->push_back (tl.x);
             _p_data_points->push_back (tl.y);
@@ -261,6 +286,8 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
                 _p_data_colour->push_back (WaterCol(bl.z, resolution));
             }
 
+            _p_data_mutex->unlock();
+
             // Mark window for re-draw.
             windows[_window_index].dirty = 1;
         }
@@ -305,86 +332,127 @@ bool Map::ScrubView(void){
 }
 
 bool Map::ScrubView(int x0, int y0, int x1, int y1){
+    static int _x0 = x0, _y0 = y0, _x1 = x1, _y1 = y1;
 
-    std::vector<GLint> _data_points_tmp;
-    std::vector<GLubyte> _data_colour_tmp;
-    std::vector<GLint> _data_points_low_res_tmp;
-    std::vector<GLubyte> _data_colour_low_res_tmp;
+    static std::vector<GLint> _data_points_tmp;
+    static std::vector<GLubyte> _data_colour_tmp;
+    static std::vector<GLint> _data_points_low_res_tmp;
+    static std::vector<GLubyte> _data_colour_low_res_tmp;
 
-    std::vector<GLint>::iterator data_it = _data_points.begin();
-    std::vector<GLubyte>::iterator colour_it = _data_colour.begin();
-    std::vector<GLint>::iterator data_low_res_it = _data_points_low_res.begin();
-    std::vector<GLubyte>::iterator colour_low_res_it = _data_colour_low_res.begin();
+    static std::vector<GLint>::iterator data_it = _data_points.begin();
+    static std::vector<GLubyte>::iterator colour_it = _data_colour.begin();
+    static std::vector<GLint>::iterator data_low_res_it = _data_points_low_res.begin();
+    static std::vector<GLubyte>::iterator colour_low_res_it = _data_colour_low_res.begin();
+
+    static unsigned int i = 0, ii = 0, done = 0, done_low_res = 0;
+
+    if(_x0 != x0 or _y0 != y0 or _x1 != x1 or _y1 != y1){
+        _x0 = x0, _y0 = y0, _x1 = x1, _y1 = y1;
+        _data_points_tmp.clear();
+        _data_colour_tmp.clear();
+        _data_points_low_res_tmp.clear();
+        _data_colour_low_res_tmp.clear();
+        data_it = _data_points.begin();
+        colour_it = _data_colour.begin();
+        data_low_res_it = _data_points_low_res.begin();
+        colour_low_res_it = _data_colour_low_res.begin();
+        i = 0;
+        ii = 0;
+        done = 0;
+        done_low_res = 0;
+        cout << "Map::ScrubView has moved.\n";
+    }
 
     /* The data size of a screen pixel. Use this to leave a small overlap in place. */
     int pix_size = max((x1 - x0),(y1 - y0))/min(_width,_height);
 
-    float x[6], y[6], z[18];
-    for (unsigned int i = 0; i < _data_points.size() / 12; ++i){
-        int retval = TestInterupt(SIG_DEST_MAP);
-        if(retval){
-            cout << "INTERUPT 2!\n";
-            return (bool)retval;
-        }
-        for(unsigned int d = 0; d < 6; ++d){
-            x[d] = *data_it;
-            ++data_it;
-            y[d] = *data_it;
-            ++data_it;
-        }
-        for(unsigned int c = 0; c < 18; ++c){
-            z[c] = *colour_it;
-            ++colour_it;
-        }
+    if(!done){
 
-        if(x[1] >= x0 - pix_size and x[0] <= x1 + pix_size and y[2] >= y0 - pix_size and y[0] <= y1 + pix_size){
-            for(unsigned int d = 0; d < 6; ++d){
-                _data_points_tmp.push_back(x[d]);
-                _data_points_tmp.push_back(y[d]);
+        float x[6], y[6], z[18];
+        //for (unsigned int i = 0; i < _data_points.size() / 12; ++i){
+        while(i < _data_points.size() / 12){
+            timestamp_t now = get_timestamp();
+            if(now > finish_time){
+                return 1;
             }
-            for(unsigned int c = 0; c < 18; ++c){
-                _data_colour_tmp.push_back(z[c]);
-            }
-        }
-    }
-    windows[_window_index].data_mutex.lock();
-    _data_points.swap(_data_points_tmp);
-    _data_colour.swap(_data_colour_tmp);
-    windows[_window_index].data_mutex.unlock();
-
-    if(_low_res){
-        for (unsigned int i = 0; i < _data_points_low_res.size() / 12; ++i){
             int retval = TestInterupt(SIG_DEST_MAP);
             if(retval){
-                cout << "INTERUPT 3!\n";
+                cout << "INTERUPT 2!\n";
                 return (bool)retval;
             }
             for(unsigned int d = 0; d < 6; ++d){
-                x[d] = *data_low_res_it;
-                ++data_low_res_it;
-                y[d] = *data_low_res_it;
-                ++data_low_res_it;
+                x[d] = *data_it;
+                ++data_it;
+                y[d] = *data_it;
+                ++data_it;
             }
             for(unsigned int c = 0; c < 18; ++c){
-                z[c] = *colour_low_res_it;
-                ++colour_low_res_it;
+                z[c] = *colour_it;
+                ++colour_it;
             }
 
-            if(x[1] >= x0 - pix_size * _low_res and x[0] <= x1 + pix_size * _low_res and 
-                        y[2] >= y0 - pix_size * _low_res and y[0] <= y1 + pix_size * _low_res){
+            if(x[1] >= x0 - pix_size and x[0] <= x1 + pix_size and y[2] >= y0 - pix_size and y[0] <= y1 + pix_size){
                 for(unsigned int d = 0; d < 6; ++d){
-                    _data_points_low_res_tmp.push_back(x[d]);
-                    _data_points_low_res_tmp.push_back(y[d]);
+                    _data_points_tmp.push_back(x[d]);
+                    _data_points_tmp.push_back(y[d]);
                 }
                 for(unsigned int c = 0; c < 18; ++c){
-                    _data_colour_low_res_tmp.push_back(z[c]);
+                    _data_colour_tmp.push_back(z[c]);
                 }
             }
+            ++i;
         }
-        windows[_window_index].data_low_res_mutex.lock();
-        _data_points_low_res.swap(_data_points_low_res_tmp);
-        _data_colour_low_res.swap(_data_colour_low_res_tmp);
-        windows[_window_index].data_low_res_mutex.unlock();
+
+        windows[_window_index].data_mutex.lock();
+        _data_points.swap(_data_points_tmp);
+        _data_colour.swap(_data_colour_tmp);
+        windows[_window_index].data_mutex.unlock();
+        done = 1;
+    }
+
+    if(!done_low_res){
+        if(_low_res){
+            float x[6], y[6], z[18];
+            //for (unsigned int i = 0; i < _data_points_low_res.size() / 12; ++i)
+            while(ii < _data_points_low_res.size() / 12){
+                timestamp_t now = get_timestamp();
+                if(now > finish_time){
+                    return 1;
+                }
+                int retval = TestInterupt(SIG_DEST_MAP);
+                if(retval){
+                    cout << "INTERUPT 3!\n";
+                    return (bool)retval;
+                }
+                for(unsigned int d = 0; d < 6; ++d){
+                    x[d] = *data_low_res_it;
+                    ++data_low_res_it;
+                    y[d] = *data_low_res_it;
+                    ++data_low_res_it;
+                }
+                for(unsigned int c = 0; c < 18; ++c){
+                    z[c] = *colour_low_res_it;
+                    ++colour_low_res_it;
+                }
+
+                if(x[1] >= x0 - pix_size * _low_res and x[0] <= x1 + pix_size * _low_res and 
+                        y[2] >= y0 - pix_size * _low_res and y[0] <= y1 + pix_size * _low_res){
+                    for(unsigned int d = 0; d < 6; ++d){
+                        _data_points_low_res_tmp.push_back(x[d]);
+                        _data_points_low_res_tmp.push_back(y[d]);
+                    }
+                    for(unsigned int c = 0; c < 18; ++c){
+                        _data_colour_low_res_tmp.push_back(z[c]);
+                    }
+                }
+                ++ii;
+            }
+            windows[_window_index].data_low_res_mutex.lock();
+            _data_points_low_res.swap(_data_points_low_res_tmp);
+            _data_colour_low_res.swap(_data_colour_low_res_tmp);
+            windows[_window_index].data_low_res_mutex.unlock();
+            done_low_res = 1;
+        }
     }
     return 0;
 }
@@ -495,17 +563,24 @@ void Map::ActOnSignal(signal sig){
         _task_list.push_back (task);
         if(_low_res)
             _task_list_low_res.push_back (task);
+    
+        //ProcessAllTasks();
+    }
+}
 
-        windows[_window_index].low_res = _low_res;
-        if(!ProcessTasks(&_task_list_low_res)){             // Draw low-res as highest priority.
-            cout << "L\n";
-            if(!ScrubView()){                               // If that completes without being interupted, remove any data that has panned off the screen.
-                cout << "S\n";
-                if(!ProcessTasks(&_task_list)){              // Then draw high-res.
-                    cout << "H\n";
-                    windows[_window_index].low_res = 0;     // And if that completes, set this to 0 which means the low res background 
-                                                            // does not get drawn in the display thread.
-                }
+void Map::ProcessAllTasks(int time_to_work){
+    //cout << "Map::ProcessAllTasks " << _task_list_low_res.size() << "\t" << _task_list.size() << "\n";
+    finish_time = get_timestamp() + time_to_work * 1000;
+
+    windows[_window_index].low_res = _low_res;
+    if(!ProcessTasks(&_task_list_low_res)){             // Draw low-res as highest priority.
+        //cout << "L\n";
+        if(!ScrubView()){                               // If that completes without being interupted, remove any data that has panned off the screen.
+            //cout << "S\n";
+            if(!ProcessTasks(&_task_list)){              // Then draw high-res.
+                //cout << "H\n";
+                windows[_window_index].low_res = 0;     // And if that completes, set this to 0 which means the low res background 
+                                                        // does not get drawn in the display thread.
             }
         }
     }
@@ -518,7 +593,7 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
         resolution = _low_res;
     }
 
-    cout << "Map::ProcessTasks " << resolution << " " << p_task_list->size() << "\n";
+    //cout << "Map::ProcessTasks " << resolution << " " << p_task_list->size() << "\n";
 
     for(std::vector<Task>::iterator it = p_task_list->begin() ; it != p_task_list->end(); ++it){
         //cout << "  resolution: " << resolution << "\ttype: " << it->type << "\tprogress_y: " << it->progress_y << 

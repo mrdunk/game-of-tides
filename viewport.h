@@ -11,7 +11,7 @@
 #define MAX_WINDOWS 10
 #define FRAME_LENGTH 100 // ms
 #define BORDERWIDTH 2
-#define ACTIVE_THREADS 4
+#define ACTIVE_THREADS 2
 
 enum
 {

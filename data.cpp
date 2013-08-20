@@ -1,6 +1,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include "time_code.c"
 
 #include "data.h"
 
@@ -293,37 +294,38 @@ Data::Data(void){
                 waterlevel -= 2000;
         }
     }
+
     cout << "Data::Data height_z_max: " << height_z_max << "\theight_z_min: " << height_z_min << "\twaterlevel: " << waterlevel << "\n";
     //testcoord.Set_waterlevel(waterlevel);
 }
 
-void Data::Cull(int* shutdown){
-    //cout << mapData.size() << "\t";
-    //int counter;
+void Data::Cull(unsigned int time_left){
+    //cout << "Data::Cull " << time_left << "\n";
+    timestamp_t time_to_return = (time_left * 1000) + get_timestamp();
+    g_mapData_lock.lock();
+    
     std::unordered_map<std::string, MapPoint>::const_iterator it;
-    int count;
-    std::string key;
-    while(1){
-        usleep(1);                  // This delay is to make the thread drawing the screen more likely to aquire the lock.
-        g_mapData_lock.lock();
-        it = mapData.find(key);
-        if(it == mapData.end())
-            it = mapData.begin();
-        count = 0;
-        while(++count < 10){        // Check 10 at a time as 1us above is a little too slow.
-            //counter = it->second.counter;
-            if((int)it->second.last_accesed < (int)it->second.counter - MAX_DATA_SIZE){
-                mapData.erase(it);
-            }
-            if(++it == mapData.end() or *shutdown != 0){
-                g_mapData_lock.unlock();
-                //cout << mapData.size() << "\t" << counter << "\n";
-                return;
-            }
-        }
-        key = it->first;
-        g_mapData_lock.unlock();
+    it = mapData.find(_key);
+
+    if(it == mapData.end()){
+        it = mapData.begin();
     }
+
+    while(get_timestamp() < time_to_return){
+        if((int)it->second.last_accesed < (int)it->second.counter - MAX_DATA_SIZE){
+            mapData.erase(it++);
+        } else{
+            ++it;
+        }
+
+        if(it == mapData.end()){
+            g_mapData_lock.unlock();
+            return;
+        }
+        _key = it->first;
+    }
+    g_mapData_lock.unlock();
+    return;
 }
 
 

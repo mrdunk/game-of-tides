@@ -60,6 +60,8 @@ bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned i
     windows[0].mouse_x_rel = -1;
     windows[0].mouse_y_rel = -1;
     windows[0].mouse_button = -1;
+    windows[0]._p_data_points_low_res = 0;
+    windows[0]._p_data_colour_low_res = 0;
 
     windows[0].window = glutCreateWindow ("Tides");
     GLenum err=glewInit();
@@ -275,7 +277,7 @@ void Display(void){
         return;
 
     /* Do low resolution draw in background if enabled. */
-    if(windows[window_index].low_res){
+    if(windows[window_index]._p_data_points_low_res and windows[window_index].low_res){
         LoadVertices(window_index, &windows[window_index].data_low_res_mutex, 
                      windows[window_index]._p_data_points_low_res, windows[window_index]._p_data_colour_low_res);
     }
@@ -575,6 +577,8 @@ Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, u
             windows[i]._p_data_colour = &_data_colour;
             windows[i]._p_data_points_icons = &_data_points_icons;
             windows[i]._p_data_colour_icons = &_data_colour_icons;
+            windows[i]._p_data_points_low_res = 0;
+            windows[i]._p_data_colour_low_res = 0;
             windows[i].low_res = 0;
             windows[i].mouse_x = -1;
             windows[i].mouse_y = -1;

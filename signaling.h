@@ -24,6 +24,7 @@
 #define    SIG_VAL_LEFT     5
 #define    SIG_VAL_RIGHT    6
 #define    SIG_VAL_SNAP     7
+#define    SIG_VAL_TIMEOUT  8
 
 struct signal{
     unsigned int type;      // Type of event. 

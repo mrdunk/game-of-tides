@@ -3,7 +3,7 @@
 #include <thread>
 #include <time.h>
 #include <stdio.h>
-#include "time_code.c"
+//#include "time_code.c"
 
 //#include <google/profiler.h>
 //#include <google/heap-profiler.h>
@@ -19,46 +19,44 @@
 using namespace std;
 
 
-void signal_thread(int* shutdown)
-{
-    Signal Sig;
-    while(*shutdown == 0){
-        usleep(FRAME_LENGTH * 500);
-        Sig.ServiceSignals(); 
-    }
-    ++(*shutdown);
-    cout << "closing signal_thread\n";
-}
-
-void housekeeping(int* shutdown){
-    Data data;
-    while(*shutdown == 0){
-        usleep(1000000);
-        data.Cull(shutdown);
-    }
-    ++(*shutdown);
-    cout << "closing housekeeping\n";
-}
-
 void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
-    usleep(1000000);     // 1000ms to allow boats to initialise in Map thread.
+    //usleep(1000000);     // 1000ms to allow boats to initialise in Map thread.
+    Signal Sig;
     Fleet vessels;
     Data data;
-    timestamp_t then, now;
-    then = now = get_timestamp();
+    timestamp_t second, then, now;
+    second = get_timestamp();
+    int total_spare_time = 0;
     while(*shutdown == 0){
-        while((int)(now - then) / 1000.0L < 100){
-            usleep(1000);
-            now = get_timestamp();
+        then = get_timestamp();
+        if((then - second) / 1000 > 1000){
+            cout << "total_spare_time:    " << total_spare_time << " ms\n";
+            cout << "data.mapData.size(): " << data.mapData.size() << "\n";
+            total_spare_time = 0;
+            second = get_timestamp();
         }
-        //cout << "tick " << (int)(now - then) / 1000.0L << "\n";
 
+        Sig.ServiceSignals();
         vessels.CalculateVessels(data.wind_speed, data.wind_dir);
         p_testMap->DrawBoats();
         p_testMap->DrawText();
         p_cockpit->Draw();
 
-        then = get_timestamp();
+        now = get_timestamp();
+        int time_left = 100 - ((now - then) / 1000);
+        p_testMap->ProcessAllTasks(time_left);
+
+        now = get_timestamp();
+        time_left = 100 - ((now - then) / 1000);
+        if(time_left > 10)
+        data.Cull(10);
+        
+        now = get_timestamp();
+        time_left = 100 - ((now - then) / 1000);
+        total_spare_time += time_left;
+        //cout << time_left << "\n";
+        if(time_left > 0)
+            usleep(time_left * 1000);
     }
     ++(*shutdown);
     cout << "closing drawBoats\n";
@@ -72,8 +70,6 @@ int main(int argc, char** argv)
     int shutdown = 0;
 
     thread canvas(Init,800,0,1000,800,&shutdown,argc,argv);
-    thread t(signal_thread, &shutdown);
-    thread t2(housekeeping, &shutdown);
 
     //Map testMap(SIG_DEST_MAP, 0, 200, 600, 600, LOW_RESOLUTION);
     Cockpit cockpit(SIG_DEST_TEST, 800, 0, 200, 200);
@@ -106,8 +102,6 @@ int main(int argc, char** argv)
 
     // we never get here because glutMainLoop() has allready close()-ed.
     ++shutdown;
-    t.join();
-    t2.join();
     t3.join();
 
     return 0;

@@ -1,6 +1,8 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include "time_code.c"
+
 #include "viewport.h"
 #include "data.h"
 #include "vessel.h"
@@ -36,6 +38,8 @@ class Map : public Viewport{
 
         Fleet vessels;
 
+        timestamp_t finish_time;
+
     public:
         Map(unsigned int label, int pos_x, int pos_y, int width, int height, int low_res=0);
         void Draw(void);
@@ -45,6 +49,7 @@ class Map : public Viewport{
         bool ScrubView(int x0, int y0, int x1, int y1);
         void ActOnSignal(signal sig);
         bool ProcessTasks(std::vector<Task>* p_task_list);
+        void ProcessAllTasks(int time_to_work);
         GLubyte WaterCol(float height, int resolution);
 
         void DrawBoats(void);

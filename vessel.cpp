@@ -204,6 +204,15 @@ void Vessel::Calculate(float wind_speed, float wind_dir){
     pos_x += (float)cos(PI * heading / 180.0) * (float)leeway_speed * 16.0 * 0.5 / timeslice;
     pos_y -= (float)sin(PI * heading / 180.0) * (float)leeway_speed * 16.0 * 0.5 / timeslice;
 
+    if(pos_x > MAX_SIZE)
+        pos_x = MAX_SIZE;
+    if(pos_y > MAX_SIZE)
+        pos_y = MAX_SIZE;
+    if(pos_x < 0)
+        pos_x = 0;
+    if(pos_y  < 0)
+        pos_y = 0;
+
 }
 
 Icon Vessel::PopulateIcon(int window_index){
@@ -412,27 +421,28 @@ Icon Vessel::PopulateIcon(int window_index){
             }
 
             if(it_sail->type == SAIL_TYPE_AFT){
+                int d_tack_x = -1;
+                int d_tack_y_l = 0;
+                int d_tack_y_r = (int)it_spar->length/MAST_RATIO/2;
+                if(apparent_wind_dir > 0){
+                    d_tack_x = 1;
+                    d_tack_y_r = 0;
+                    d_tack_y_l = (int)it_spar->length/MAST_RATIO/2;
+                }
                 icon.points.push_back(-(int)it_spar->length/MAST_RATIO);
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat);
+                icon.points.push_back((size/2) - bowsprit - tack_on_boat + d_tack_y_l);
                 icon.points.push_back(-(int)foot * sin(3.141 * (apparent_wind_dir - aoa) / 180));
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)((float)foot * cos(3.141 * (apparent_wind_dir - aoa) / 180)));
                 icon.points.push_back((int)it_spar->length/MAST_RATIO);
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat);
+                icon.points.push_back((size/2) - bowsprit - tack_on_boat + d_tack_y_r);
 
-                icon.points.push_back(-(int)it_spar->length/MAST_RATIO);
+                icon.points.push_back(-d_tack_x * (int)it_spar->length/MAST_RATIO);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat);
                 icon.points.push_back(-(int)foot * sin(3.141 * ((apparent_wind_dir - aoa + apparent_wind_dir)/2) / 180) / 3);
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((apparent_wind_dir - aoa + apparent_wind_dir)/2) / 180) / 3);
                 icon.points.push_back(-(int)foot * sin(3.141 * (apparent_wind_dir - aoa) / 180));
                 icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * (apparent_wind_dir - aoa) / 180));
-/*
-                icon.points.push_bac6k(-(int)foot * sin(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3);
-                icon.points.push_back(-(int)foot * sin(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3 - (int)foot * sin(3.141 * aoa / 180) / 3);
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * ((aoa + apparent_wind_dir)/2) / 180) / 3  - (int)foot * cos(3.141 * aoa / 180) / 3);
-                icon.points.push_back(-(int)foot * sin(3.141 * aoa / 180));
-                icon.points.push_back((size/2) - bowsprit - tack_on_boat - (int)foot * cos(3.141 * aoa / 180));
-*/
+                
                 for(int i = 0; i < 6; i++){
                     icon.colour.push_back(255);
                     icon.colour.push_back(sail_col);

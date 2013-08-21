@@ -67,6 +67,14 @@ struct MapPoint : public Coordinate{
     /*
     */
     void calculateZ(std::unordered_map<std::string, MapPoint>* mapData);
+
+    /* This needs to be set for all MapPoint s once we know it. */
+    static unsigned int waterlevel;
+
+    /* Calculate the largest recursion level this point could cover without any possibility
+     * of it overlapping the shore line.
+     * Wet tiles are all wet. Dry tiles are all dry. */
+    int calculateTile(void);
 };
 
 class Data{

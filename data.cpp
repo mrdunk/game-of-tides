@@ -107,7 +107,7 @@ int Coordinate::limitRecursion(int recursionTarget, unsigned int* modifiedX, uns
     return recursion;
 }
 
-//unsigned int MapPoint::_waterlevel;
+unsigned int MapPoint::waterlevel = 0;
 unsigned int MapPoint::counter = 0;
 
 void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
@@ -293,6 +293,10 @@ Data::Data(void){
             else
                 waterlevel -= 2000;
         }
+
+        // Give all MapPoint s access to waterlevel.
+        MapPoint tmp;
+        tmp.waterlevel = waterlevel;
     }
 
     cout << "Data::Data height_z_max: " << height_z_max << "\theight_z_min: " << height_z_min << "\twaterlevel: " << waterlevel << "\n";
@@ -301,6 +305,10 @@ Data::Data(void){
 
 void Data::Cull(unsigned int time_left){
     //cout << "Data::Cull " << time_left << "\n";
+    if(mapData.size() <= MAX_DATA_SIZE){
+        return;
+    }
+
     timestamp_t time_to_return = (time_left * 1000) + get_timestamp();
     g_mapData_lock.lock();
     
@@ -312,13 +320,14 @@ void Data::Cull(unsigned int time_left){
     }
 
     while(get_timestamp() < time_to_return){
-        if((int)it->second.last_accesed < (int)it->second.counter - MAX_DATA_SIZE){
+        if((int)it->second.last_accesed <= (int)it->second.counter - MAX_DATA_SIZE){
             mapData.erase(it++);
         } else{
             ++it;
         }
 
         if(it == mapData.end()){
+            _key = "";
             g_mapData_lock.unlock();
             return;
         }

@@ -684,7 +684,11 @@ void Viewport::AddIcon(Icon_key key, Icon icon){
 void Viewport::RedrawIcons(void){
     //cout << "Viewport::RedrawIcons " << _window_index << "\n";
     float scale;
-    windows[_window_index].data_icons_mutex.lock();
+    std::mutex throwaway;
+    if(try_lock(windows[_window_index].data_icons_mutex, throwaway) > -1){
+        cout << "Viewport::RedrawIcons waiting for lock\n";
+        windows[_window_index].data_icons_mutex.lock();
+    }
     _data_points_icons.clear();
     _data_colour_icons.clear();
     for (std::map<Icon_key,Icon>::iterator it=_icons.begin(); it!=_icons.end(); ++it){

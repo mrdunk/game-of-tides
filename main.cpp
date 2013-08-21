@@ -20,7 +20,6 @@ using namespace std;
 
 
 void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
-    //usleep(1000000);     // 1000ms to allow boats to initialise in Map thread.
     Signal Sig;
     Fleet vessels;
     Data data;
@@ -92,7 +91,8 @@ int main(int argc, char** argv)
     testViewport2.AddIcon(key, icon);
     testViewport2.RedrawIcons();
 
-    thread t3(drawBoats, &shutdown, &testMap, &cockpit);
+//    thread t3(drawBoats, &shutdown, &testMap, &cockpit);
+    drawBoats(&shutdown, &testMap, &cockpit);
 
     //ProfilerStop();
     //HeapProfilerStop();
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 
     // we never get here because glutMainLoop() has allready close()-ed.
     ++shutdown;
-    t3.join();
+//    t3.join();
 
     return 0;
 }

@@ -57,6 +57,7 @@ struct Coordinate{
 
 struct MapPoint : public Coordinate{
     unsigned int z;
+    int tile;
     static unsigned int counter;
 
     /* Will allow culling of seldom used nodes. */
@@ -74,7 +75,7 @@ struct MapPoint : public Coordinate{
     /* Calculate the largest recursion level this point could cover without any possibility
      * of it overlapping the shore line.
      * Wet tiles are all wet. Dry tiles are all dry. */
-    int calculateTile(void);
+    int calculateTile(std::unordered_map<std::string, MapPoint>* mapData);
 };
 
 class Data{

@@ -18,44 +18,73 @@
 
 using namespace std;
 
+void drawMap(int* shutdown, Map* p_testMap){
+    Signal Sig;
+    Data data;
+
+    timestamp_t end_second, end_frame;
+    int count = 0;
+    end_second = get_timestamp() + 1000 * 1000;
+    while(*shutdown == 0){
+        end_frame = get_timestamp() + 100 * 1000;
+        if(get_timestamp() >= end_second){
+            if(get_timestamp() >= end_second + 1000 * 1000){
+                cout << "drawMap missed multiple frames\n";
+                end_second = get_timestamp() + 1000 * 1000;
+            }
+            end_second += 1000 * 1000;
+            cout << count << " fps drawMap\n";
+            count = 0;
+        }
+        
+        Sig.ServiceSignals();
+        p_testMap->ProcessAllTasks((end_frame - get_timestamp()) /100);
+        data.Cull((end_frame - get_timestamp()) / 1000);
+
+        if(end_frame > get_timestamp() +10)
+            usleep(end_frame - get_timestamp());
+        ++count;
+    }
+    ++(*shutdown);
+    cout << "closing drawMap\n";
+}
 
 void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
-    Signal Sig;
+    //Signal Sig;
     Fleet vessels;
     Data data;
-    timestamp_t second, then, now;
-    second = get_timestamp();
-    int total_spare_time = 0;
+    
+    timestamp_t end_second, end_frame;
+    int count = 0;
+    end_second = get_timestamp() + 1000 * 1000;
     while(*shutdown == 0){
-        then = get_timestamp();
-        if((then - second) / 1000 > 1000){
-            cout << "total_spare_time:    " << total_spare_time << " ms\n";
+        end_frame = get_timestamp() + 100 * 1000;
+        if(get_timestamp() >= end_second){
+            if(get_timestamp() >= end_second + 1000 * 1000){
+                cout << "drawBoats missed multiple frames\n";
+                end_second = get_timestamp() + 1000 * 1000;
+            }
+            end_second += 1000 * 1000;
             cout << "data.mapData.size(): " << data.mapData.size() << "\n";
-            total_spare_time = 0;
-            second = get_timestamp();
+            cout << count << " fps drawBoats\n";
+            count = 0;
         }
 
-        Sig.ServiceSignals();
+        //Sig.ServiceSignals();
         vessels.CalculateVessels(data.wind_speed, data.wind_dir);
         p_testMap->DrawBoats();
         p_testMap->DrawText();
         p_cockpit->Draw();
 
-        now = get_timestamp();
-        int time_left = 100 - ((now - then) / 1000);
-        p_testMap->ProcessAllTasks(time_left);
+        //now = get_timestamp();
+        //time_left = 100 - ((now - then) / 1000);
+        //p_testMap->ProcessAllTasks(time_left);
 
-        now = get_timestamp();
-        time_left = 100 - ((now - then) / 1000);
-        if(time_left > 10)
-        data.Cull(10);
+        //data.Cull((end_frame - get_timestamp()) / 1000);
         
-        now = get_timestamp();
-        time_left = 100 - ((now - then) / 1000);
-        total_spare_time += time_left;
-        //cout << time_left << "\n";
-        if(time_left > 0)
-            usleep(time_left * 1000);
+        if(end_frame > get_timestamp() +10)
+            usleep(end_frame - get_timestamp());
+        ++count;
     }
     ++(*shutdown);
     cout << "closing drawBoats\n";
@@ -92,6 +121,7 @@ int main(int argc, char** argv)
     testViewport2.RedrawIcons();
 
 //    thread t3(drawBoats, &shutdown, &testMap, &cockpit);
+    thread t3(drawMap, &shutdown, &testMap);
     drawBoats(&shutdown, &testMap, &cockpit);
 
     //ProfilerStop();
@@ -102,7 +132,7 @@ int main(int argc, char** argv)
 
     // we never get here because glutMainLoop() has allready close()-ed.
     ++shutdown;
-//    t3.join();
+    t3.join();
 
     return 0;
 }

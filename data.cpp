@@ -215,6 +215,53 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
     //cout << "MapPoint::calculateZ -\n";
 }
 
+int MapPoint::calculateTile(std::unordered_map<std::string, MapPoint>* mapData){
+    std::string key = toString();
+    std::unordered_map<std::string, MapPoint>::const_iterator got = mapData->find (key);
+
+    if ( got != mapData->end() ){
+        // already have "z" data in buffer.
+        z = got->second.z;
+
+        if(got->second.tile){
+            // already have "tile" data in buffer.
+            tile = got->second.tile;
+
+            last_accesed = counter;
+            std::pair<std::string, MapPoint> entry(key, *this);
+            g_mapData_lock.lock();
+            mapData->insert(entry);
+            g_mapData_lock.unlock();
+
+            return tile;
+        }
+    } else {
+        // TODO This parforms un-necesary lookup and insert.
+        calculateZ(mapData);
+    }
+
+
+    //int max_recursion = limitRecursion();
+
+
+    MapPoint parent;
+    bool squareOrDiamond = getParent(&parent);
+
+    //int pixSize;
+    //if(x != parent.x)
+        //pixSize = abs((int)x - (int)parent.x);
+    //else
+        //pixSize = abs((int)y - (int)parent.y);
+
+
+    if(squareOrDiamond){
+
+    } else {
+
+    }
+
+    return tile;
+}
 
 #define PRIME 1099511628211ULL
 #define OFFSET 14695981039346656037ULL

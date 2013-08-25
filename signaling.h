@@ -28,7 +28,7 @@
 
 struct signal{
     unsigned int type;      // Type of event. 
-    unsigned int source;    // Unique id of the code generating signal.
+    int source;             // Unique id of the code generating signal.
     unsigned int sequence;  // Increases every time a new signal is added.
     unsigned int dest;      // Destination id.
     int val;

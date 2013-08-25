@@ -33,7 +33,7 @@ void drawMap(int* shutdown, Map* p_testMap){
                 end_second = get_timestamp() + 1000 * 1000;
             }
             end_second += 1000 * 1000;
-            cout << count << " fps drawMap\n";
+            //cout << count << " fps drawMap\n";
             count = 0;
         }
         
@@ -65,8 +65,8 @@ void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
                 end_second = get_timestamp() + 1000 * 1000;
             }
             end_second += 1000 * 1000;
-            cout << "data.mapData.size(): " << data.mapData.size() << "\n";
-            cout << count << " fps drawBoats\n";
+            //cout << "data.mapData.size(): " << data.mapData.size() << "\n";
+            //cout << count << " fps drawBoats\n";
             count = 0;
         }
 

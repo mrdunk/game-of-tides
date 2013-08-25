@@ -78,6 +78,14 @@ int Coordinate::limitRecursion(void){
     return limitRecursion(0, &tmp);
 }
 
+int Coordinate::limitRecursion(int recursionTarget){
+    Coordinate tmp;
+    int retval = limitRecursion(recursionTarget, &tmp);
+    x = tmp.x;
+    y = tmp.y;
+    return retval;
+}
+
 int Coordinate::limitRecursion(int recursionTarget, Coordinate* limitedCoord){
     return limitRecursion(recursionTarget, &limitedCoord->x, &limitedCoord->y);
 }
@@ -119,6 +127,7 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
     if ( got != mapData->end() ){
         // already have the data in buffer.
         z = got->second.z;
+        tile = got->second.tile;
         
         last_accesed = counter;
         std::pair<std::string, MapPoint> entry(key, *this);
@@ -130,7 +139,9 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
     }
 
     /* New entry. */
-   
+
+    tile = 0;
+       
     if(!x and !y){
         // 0,0 point.
         z = SEED_MAP_HEIGHT;
@@ -227,11 +238,7 @@ int MapPoint::calculateTile(std::unordered_map<std::string, MapPoint>* mapData){
             // already have "tile" data in buffer.
             tile = got->second.tile;
 
-            last_accesed = counter;
-            std::pair<std::string, MapPoint> entry(key, *this);
-            g_mapData_lock.lock();
-            mapData->insert(entry);
-            g_mapData_lock.unlock();
+            save(key, mapData);
 
             return tile;
         }
@@ -241,26 +248,46 @@ int MapPoint::calculateTile(std::unordered_map<std::string, MapPoint>* mapData){
     }
 
 
-    //int max_recursion = limitRecursion();
-
-
-    MapPoint parent;
-    bool squareOrDiamond = getParent(&parent);
-
-    //int pixSize;
-    //if(x != parent.x)
-        //pixSize = abs((int)x - (int)parent.x);
-    //else
-        //pixSize = abs((int)y - (int)parent.y);
-
-
-    if(squareOrDiamond){
-
-    } else {
-
+    int recursion;
+    for(recursion = MAX_RECURSION; recursion >= MIN_RECURSION; --recursion){
+        MapPoint point_at_recursion;
+        limitRecursion(recursion, &point_at_recursion);
+        point_at_recursion.calculateZ(mapData);
+        if(point_at_recursion.z >= waterlevel){
+            // Not wet.
+            if(point_at_recursion.tile == 0){
+                point_at_recursion.tile = -1;
+                point_at_recursion.save(point_at_recursion.toString(), mapData);
+            }
+        } else if(point_at_recursion.tile >= recursion){
+            // Parent already calculated and a valid tile
+            tile = recursion;
+            save(key, mapData);
+            break;
+        } else if(point_at_recursion.tile == 0){
+            // this level has not been calculated yet.
+            int size = pow(2, recursion);
+            if(z + 1 * size < waterlevel){
+                // Tile is wet.
+                point_at_recursion.tile = recursion;
+                tile = recursion;
+                point_at_recursion.save(point_at_recursion.toString(), mapData);
+                save(key, mapData);
+                break;
+            }
+        }
     }
 
+
     return tile;
+}
+
+void MapPoint::save(std::string key, std::unordered_map<std::string, MapPoint>* mapData){
+    last_accesed = counter;
+    std::pair<std::string, MapPoint> entry(key, *this);
+    g_mapData_lock.lock();
+    mapData->insert(entry);
+    g_mapData_lock.unlock();
 }
 
 #define PRIME 1099511628211ULL

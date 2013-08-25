@@ -16,8 +16,9 @@ Map::Map(unsigned int label, int pos_x, int pos_y, int width, int height, int lo
     windows[_window_index].low_res = 0;     // Set this to 0 so we don't start displaying low_res layer until there is data in it.
     windows[_window_index]._p_data_points_low_res = &_data_points_low_res;
     windows[_window_index]._p_data_colour_low_res = &_data_colour_low_res;
+
+    RegisterEndpoint(SIG_DEST_ALL, this);
     
-//    vessels.CalculateVessels(data.wind_speed, data.wind_dir);
     DrawBoats();
 
     finish_time = get_timestamp() + 1000*1000;  // 1 second in the future.
@@ -461,110 +462,159 @@ void Map::ActOnSignal(signal sig){
     //cout << "Viewport::ActOnSignal\n";
     //cout << "Viewport::ActOnSignal " << "\tsig.source: " << sig.source << "\tsig.dest: " << 
     //sig.dest << "\tsig.key: " << sig.key << "\tsig.val: " << sig.val << "\n";
-    if(sig.dest == SIG_DEST_MAP){
-        int store_view_x = _view_x;
-        int store_view_y = _view_y;
+    if(sig.dest == SIG_DEST_MAP or sig.source == _window_index){
+        if(sig.type == SIG_TYPE_KEYBOARD or sig.type == SIG_TYPE_ICON_CLICK){
+            int store_view_x = _view_x;
+            int store_view_y = _view_y;
 
-        Task task;
+            Task task;
 
-        switch(sig.val){
-            case SIG_VAL_ZOOM_IN:
-                _zoom *= 1.5;
-                task.type = TASK_TYPE_ZOOM;
-                _task_list.clear();
-                _task_list_low_res.clear();
-                break;
-            case SIG_VAL_ZOOM_OUT:
-                _zoom /= 1.5;
-                task.type = TASK_TYPE_ZOOM;
-                _task_list.clear();
-                _task_list_low_res.clear();
-                break;
-            case SIG_VAL_UP:
-                _view_y += KEY_MOVMENT / _zoom;
-                task.type = TASK_TYPE_PAN;
-                break;
-            case SIG_VAL_DOWN:
-                _view_y -= KEY_MOVMENT / _zoom;
-                task.type = TASK_TYPE_PAN;
-                break;
-            case SIG_VAL_LEFT:
-                _view_x -= KEY_MOVMENT / _zoom;
-                task.type = TASK_TYPE_PAN;
-                break;
-            case SIG_VAL_RIGHT:
-                _view_x += KEY_MOVMENT / _zoom;
-                task.type = TASK_TYPE_PAN;
-                break;
-            case SIG_VAL_SNAP:
-                store_view_x = _view_x = sig.val2;
-                store_view_y = _view_y = sig.val3;
-                task.type = TASK_TYPE_ZOOM;
-                _task_list.clear();
-                _task_list_low_res.clear();
-                break;
+            switch(sig.val){
+                case SIG_VAL_ZOOM_IN:
+                    _zoom *= 1.5;
+                    task.type = TASK_TYPE_ZOOM;
+                    _task_list.clear();
+                    _task_list_low_res.clear();
+                    break;
+                case SIG_VAL_ZOOM_OUT:
+                    _zoom /= 1.5;
+                    task.type = TASK_TYPE_ZOOM;
+                    _task_list.clear();
+                    _task_list_low_res.clear();
+                    break;
+                case SIG_VAL_UP:
+                    _view_y += KEY_MOVMENT / _zoom;
+                    task.type = TASK_TYPE_PAN;
+                    break;
+                case SIG_VAL_DOWN:
+                    _view_y -= KEY_MOVMENT / _zoom;
+                    task.type = TASK_TYPE_PAN;
+                    break;
+                case SIG_VAL_LEFT:
+                    _view_x -= KEY_MOVMENT / _zoom;
+                    task.type = TASK_TYPE_PAN;
+                    break;
+                case SIG_VAL_RIGHT:
+                    _view_x += KEY_MOVMENT / _zoom;
+                    task.type = TASK_TYPE_PAN;
+                    break;
+                case SIG_VAL_SNAP:
+                    store_view_x = _view_x = sig.val2;
+                    store_view_y = _view_y = sig.val3;
+                    task.type = TASK_TYPE_ZOOM;
+                    _task_list.clear();
+                    _task_list_low_res.clear();
+                    break;
+            }
+            if(_zoom > 40000)
+                task.zoom = _zoom = 40000;      // TODO base this on MIN_RECURSION
+
+            /* Different aspects depending on whether map is portrait or landscape. */
+            if(_width > _height){
+                task.x0 = store_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+                task.x1 = store_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+                task.y0 = store_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+                task.y1 = store_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+            } else {
+                task.x0 = store_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+                task.x1 = store_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+                task.y0 = store_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+                task.y1 = store_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+            }
+            task.view_x = _view_x;
+            task.view_y = _view_y;
+            task.zoom = _zoom;
+            task.progress_x = 0;
+            task.progress_y = 0;
+
+            /* For adding a 1px overlap. */
+            int pix_size = 2 * max((task.x1-task.x0),(task.y1-task.y0)) / min(_width,_height);
+
+            if(store_view_x < _view_x){
+                task.x0 = task.x1 - pix_size;
+                if(_width > _height){
+                    task.x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+                } else {
+                    task.x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+                }
+            } else if(store_view_x > _view_x){
+                task.x1 = task.x0 + pix_size;
+                if(_width > _height){
+                    task.x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+                } else {
+                    task.x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+                }
+            } else if(store_view_y < _view_y){
+                task.y0 = task.y1 - pix_size;
+                if(_width > _height){
+                    task.y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
+                } else {
+                    task.y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+                }
+            } else if(store_view_y > _view_y){
+                task.y1 = task.y0 + pix_size;
+                if(_width > _height){
+                    task.y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
+                } else {
+                    task.y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+                }
+            }
+
+
+            SetView(_view_x, _view_y, _zoom, _rotation);
+            _task_list.push_back (task);
+            if(_low_res)
+                _task_list_low_res.push_back (task);
+
+            //ProcessAllTasks();
+        } else if(sig.type == SIG_TYPE_MOUSE_BUT and sig.val == 1){
+            cout << "SIG_TYPE_MOUSE_BUT\n";
+            static MapPoint point;
+            static MapPoint point_start, point_end;
+
+            if(point.x != (float)((int)windows[_window_index].mouse_x - (int)_width/2) / _width / _zoom * MAX_SIZE + _view_x + MAX_SIZE/2 or
+                    point.y != (float)((int)windows[_window_index].mouse_y - (int)_height/2) / _height / _zoom * MAX_SIZE + _view_y + MAX_SIZE/2){
+                cout << "\n* ";
+                point.x = (float)((int)windows[_window_index].mouse_x - (int)_width/2) / _width / _zoom * MAX_SIZE + _view_x + MAX_SIZE/2;
+                point.y = (float)((int)windows[_window_index].mouse_y - (int)_height/2) / _height / _zoom * MAX_SIZE + _view_y + MAX_SIZE/2;
+                point.calculateTile(data.p_mapData);
+
+                if(point_start.tile == 0 or point_end.tile != 0){
+                    point_end.tile = 0;
+
+                    point.limitRecursion(point.tile, &point_start);
+                    point_start.calculateTile(data.p_mapData);
+
+                    Icon icon = IconSquare(64);
+                    icon.pos_x = point_start.x;
+                    icon.pos_y = point_start.y;
+                    icon.scale = pow(2, point.tile);
+                    Icon_key key ;
+                    key.type = ICON_TYPE_TEST;
+                    key.key = icon.key;
+                    AddIcon(key, icon);
+                    cout << "START\n";
+                } else {
+                    point.limitRecursion(point.tile, &point_end);
+                    point_end.calculateTile(data.p_mapData);
+
+                    Icon icon = IconSquare(64);
+                    icon.pos_x = point_end.x;
+                    icon.pos_y = point_end.y;
+                    icon.scale = pow(2, point.tile);
+                    icon.key = 2;
+                    Icon_key key ;
+                    key.type = ICON_TYPE_TEST;
+                    key.key = icon.key;
+                    AddIcon(key, icon);
+                    cout << "END\n";
+
+                    CalculatePath path(point_start, point_end, 1);
+                    path.Process(get_timestamp() + 1000*1000*20);
+                    path.Display(this);
+                }
+            }
         }
-        if(_zoom > 40000)
-            task.zoom = _zoom = 40000;      // TODO base this on MIN_RECURSION
-
-        /* Different aspects depending on whether map is portrait or landscape. */
-        if(_width > _height){
-            task.x0 = store_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-            task.x1 = store_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-            task.y0 = store_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-            task.y1 = store_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-        } else {
-            task.x0 = store_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-            task.x1 = store_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-            task.y0 = store_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-            task.y1 = store_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-        }
-        task.view_x = _view_x;
-        task.view_y = _view_y;
-        task.zoom = _zoom;
-        task.progress_x = 0;
-        task.progress_y = 0;
-
-        /* For adding a 1px overlap. */
-        int pix_size = 2 * max((task.x1-task.x0),(task.y1-task.y0)) / min(_width,_height);
-
-        if(store_view_x < _view_x){
-            task.x0 = task.x1 - pix_size;
-            if(_width > _height){
-                task.x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-            } else {
-                task.x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-            }
-        } else if(store_view_x > _view_x){
-            task.x1 = task.x0 + pix_size;
-            if(_width > _height){
-                task.x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-            } else {
-                task.x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-            }
-        } else if(store_view_y < _view_y){
-            task.y0 = task.y1 - pix_size;
-            if(_width > _height){
-                task.y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-            } else {
-                task.y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-            }
-        } else if(store_view_y > _view_y){
-            task.y1 = task.y0 + pix_size;
-            if(_width > _height){
-                task.y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
-            } else {
-                task.y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-            }
-        }
-
-
-        SetView(_view_x, _view_y, _zoom, _rotation);
-        _task_list.push_back (task);
-        if(_low_res)
-            _task_list_low_res.push_back (task);
-    
-        //ProcessAllTasks();
     }
 }
 
@@ -580,7 +630,7 @@ void Map::ProcessAllTasks(int time_to_work){
             if(!ProcessTasks(&_task_list)){              // Then draw high-res.
                 //cout << "H\n";
                 windows[_window_index].low_res = 0;     // And if that completes, set this to 0 which means the low res background 
-                                                        // does not get drawn in the display thread.
+                // does not get drawn in the display thread.
             }
         }
     }

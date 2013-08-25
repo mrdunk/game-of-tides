@@ -46,6 +46,8 @@ struct Coordinate{
      * can exist at without rounding. */
     int limitRecursion(void);
 
+    int limitRecursion(int recursionTarget);
+
     /* Limit the maximum recursion level to decend to.
      * This has the effect of rounding "limitedCoord" to the coordinates of the parent 
      * at level "recursionTarget".
@@ -76,6 +78,9 @@ struct MapPoint : public Coordinate{
      * of it overlapping the shore line.
      * Wet tiles are all wet. Dry tiles are all dry. */
     int calculateTile(std::unordered_map<std::string, MapPoint>* mapData);
+
+    /* Save the MapPoint to map. */
+    void save(std::string key, std::unordered_map<std::string, MapPoint>* mapData);
 };
 
 class Data{

@@ -114,10 +114,10 @@ bool Init(unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned i
 }
 
 void _close(void){
-    cout << "close\n";
+    cout << "closing...\n";
     ++(*p_shutdown_gl);      // Set other threads to terminate.
     while(*p_shutdown_gl < ACTIVE_THREADS);
-    cout << "close 2\n";
+    cout << "closed.\n";
 }
 
 void _init(void){
@@ -184,6 +184,7 @@ void setView(int window_index, int view_x, int view_y, float zoom, int rotation)
 }
 
 void Resize(int win_width, int win_height){
+    cout << "Resize\n";
     cout<<"win_width:  "<<win_width<<"\n";
     cout<<"win_height: "<<win_height<<"\n";
     glutSetWindow(windows[0].window);
@@ -273,8 +274,10 @@ void Display(void){
     /* clear all pixels */
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if(!windows[window_index]._p_data_colour)
+    if(!windows[window_index]._p_data_colour){
+        glutSwapBuffers();
         return;
+    }
 
     /* Do low resolution draw in background if enabled. */
     if(windows[window_index]._p_data_points_low_res and windows[window_index].low_res){
@@ -332,9 +335,10 @@ void click(int button, int state, int x, int y){
         ++window_index;
     }
 
-    cout<<"window: " << window_index << "\tbutton:  "<<button<<"\tstate: "<<state<<"\tx: "<<x<<"  y: "<<y<<"\n";
+    //cout<<"window: " << window_index << "\tbutton:  "<<button<<"\tstate: "<<state<<"\tx: "<<x<<"  y: "<<y<<"\n";
 
-    signal sig = {sig.type = SIG_TYPE_MOUSE_BUT, sig.source = window_index, sig.key = button, sig.val = state};
+    signal sig;
+    sig.type = SIG_TYPE_MOUSE_BUT, sig.source = window_index, sig.key = button, sig.val = state, sig.dest = SIG_DEST_ALL;
     Signal_instance.PushEvent(sig);
 
     if(state == GLUT_DOWN){
@@ -424,7 +428,7 @@ void timer(int value){
     //cout << (now - then) << "\n";
     if((long)(now - then) / 1000000.0L >= 1){
         then = get_timestamp();
-        cout << frame_counter << " frames/second\n";
+        //cout << frame_counter << " frames/second\n";
         frame_counter = 0;
 
 #ifdef TIMING_DEBUG
@@ -686,7 +690,7 @@ void Viewport::RedrawIcons(void){
     float scale;
     std::mutex throwaway;
     if(try_lock(windows[_window_index].data_icons_mutex, throwaway) > -1){
-        cout << "Viewport::RedrawIcons waiting for lock\n";
+        //cout << "Viewport::RedrawIcons waiting for lock\n";
         windows[_window_index].data_icons_mutex.lock();
     }
     _data_points_icons.clear();
@@ -739,6 +743,55 @@ Icon Viewport::TestIcon(void){
 
     return icon;
 }
+
+Icon Viewport::IconSquare(int colour){
+    Icon retvalue;
+
+    retvalue.angle = 0.0f;
+    retvalue.scale = 1;
+    retvalue.fixed_size = 0;
+    retvalue.centre_x = 0;
+    retvalue.centre_y = 0;
+    retvalue.pos_x = 0;
+    retvalue.pos_y = 0;
+    retvalue.key = 1;
+
+    retvalue.points.push_back(0);
+    retvalue.points.push_back(0);
+    retvalue.points.push_back(0);
+    retvalue.points.push_back(1);
+    retvalue.points.push_back(1);
+    retvalue.points.push_back(1);
+    retvalue.points.push_back(1);
+    retvalue.points.push_back(1);
+    retvalue.points.push_back(1);
+    retvalue.points.push_back(0);
+    retvalue.points.push_back(0);
+    retvalue.points.push_back(0);
+
+    retvalue.colour.push_back(colour);
+    retvalue.colour.push_back(0);
+    retvalue.colour.push_back(20);
+    retvalue.colour.push_back(colour);
+    retvalue.colour.push_back(0);
+    retvalue.colour.push_back(20);
+    retvalue.colour.push_back(colour);
+    retvalue.colour.push_back(0);
+    retvalue.colour.push_back(20);
+    retvalue.colour.push_back(colour);
+    retvalue.colour.push_back(0);
+    retvalue.colour.push_back(20);
+    retvalue.colour.push_back(colour);
+    retvalue.colour.push_back(0);
+    retvalue.colour.push_back(20);
+    retvalue.colour.push_back(colour);
+    retvalue.colour.push_back(0);
+    retvalue.colour.push_back(20);
+    retvalue.colour.push_back(0);
+
+    return retvalue;
+}
+
 
 void Viewport::AddText(int text_pos_x, int text_pos_y, Text text){
     pair<int,int> key(text_pos_x, text_pos_y);

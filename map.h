@@ -1,11 +1,12 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "time_code.c"
+//#include "time_code.c"
 
 #include "viewport.h"
 #include "data.h"
 #include "vessel.h"
+#include "pathfind.h"
 
 #define LOW_RESOLUTION 8 
 #define TASK_TYPE_ZOOM 1

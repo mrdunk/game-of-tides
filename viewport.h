@@ -166,6 +166,7 @@ class Viewport : public Signal{
         void Clear();
 
         Icon TestIcon(void);
+        Icon IconSquare(int colour);
 
         void AddText(int text_pos_x, int text_pos_y, Text text);
 };

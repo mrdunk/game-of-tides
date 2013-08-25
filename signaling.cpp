@@ -41,7 +41,8 @@ void Signal::SwapBuf(void){
 }
 
 void Signal::PushEvent(signal sig){
-    cout << "Signal::PushEvent " << _read_counter << "," << _write_counter << "\n";
+    //cout << "Signal::PushEvent " << _read_counter << "," << _write_counter << "\ttype: " << sig.type << "\tsource: " << sig.source << "\tdest: " << sig.dest 
+    //        << " \tval: " << sig.val << "\n";
     sig.sequence = _write_counter++;
     _p_active_sig_buf->push_back(sig);
     _interupt[sig.dest] = sig.val;             // set interupt for this dest address.

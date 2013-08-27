@@ -713,6 +713,9 @@ void Viewport::RedrawIcons(void){
     windows[_window_index].data_icons_mutex.unlock();
 }
 
+void Viewport::ClearIcons(void){
+    _icons.clear();
+}
 Icon Viewport::TestIcon(void){
     Icon icon;
     icon.points.push_back (5);

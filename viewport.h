@@ -159,6 +159,8 @@ class Viewport : public Signal{
          */
         void AddIcon(Icon_key key, Icon icon);
 
+        void ClearIcons(void);
+
         Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height);
         void SetView(int view_x, int view_y, float zoom, int rotation);
         virtual void Draw(void);

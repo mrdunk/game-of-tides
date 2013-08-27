@@ -610,8 +610,13 @@ void Map::ActOnSignal(signal sig){
                     cout << "END\n";
 
                     CalculatePath path(point_start, point_end, 1);
-                    path.Process(get_timestamp() + 1000*1000*20);
-                    path.Display(this);
+                    if(path.Process(get_timestamp() + 1000*1000*20)){
+                        cout << "Done path.Process\n";
+                        path.Simplify(get_timestamp() + 1000*1000*20);
+                        cout << "Done path.Simplify\n";
+                        path.Display(this);
+                        cout << "Done path.Display\n";
+                    }
                 }
             }
         }

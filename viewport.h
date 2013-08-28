@@ -148,6 +148,7 @@ class Viewport : public Signal{
         std::vector<GLubyte> _data_colour_icons;
 
         std::map<Icon_key, Icon> _icons;
+        std::mutex _icons_mutex;
     public:
         void RedrawIcons(void);
 

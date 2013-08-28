@@ -9,7 +9,7 @@
 using namespace std;
 
 bool PathKeyXYZ::operator<(const PathKeyXYZ other) const {
-    int recursion_multiplier = 100000;
+    int recursion_multiplier = 200000;
 
     double d_this = sqrt((double)(x - dest_x) * (double)(x - dest_x) + (double)(y - dest_y) * (double)(y - dest_y));
     double d_other = sqrt((double)(other.x - dest_x) * (double)(other.x - dest_x) + (double)(other.y - dest_y) * (double)(other.y - dest_y));
@@ -159,6 +159,7 @@ bool CalculatePath::Process(timestamp_t end_time){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
+                    open_set.clear();
                     cout << "SUCESS\n";
                     return 1;
                 }
@@ -195,45 +196,25 @@ bool CalculatePath::Simplify(timestamp_t end_time){
     last.calculateTile(data.p_mapData);
     //last_size = pow(2, last.tile);
     
-    /*
-    int count = 0;
-    while(++count <= 100 and lowest > 1 and get_timestamp() < end_time){
-        for(map<PathKeyXY, int>::iterator it = closed_set.begin(); it != closed_set.end(); it++){
-            point.x = it->first.x;
-            point.y = it->first.y;
-            point.calculateTile(data.p_mapData);
-            point_size = pow(2, point.tile);
-
-            if(abs((int)point.x - (int)last.x) <= (point_size + last_size) *2 and abs((int)point.y - (int)last.y) <= (point_size + last_size) *2){            
-
-                if(it->second < lowest){
-                    last = point;
-                    last_size = point_size;
-                    lowest = it->second;
-                    path.push_back(it->first);
-                }
-            }
-            if(lowest <= 1)
-                break;
-        }
-    }*/
 
     PathKeyXY best;
     int best_tile;
     int best_so_far = std::numeric_limits<int>::max();
     bool updated = 1;
+    int multiplier = 0;
 
-    while(get_timestamp() < end_time and closed_set.size() and updated){
-        cout << path.size() << "\t" << best_so_far << "\n";
+    while(get_timestamp() < end_time and closed_set.size() and best_so_far > 1 and multiplier < 4){
+        cout << "\t" << path.size() << "\t" << best_so_far << "\t" << multiplier << "\n";
 
         updated = 0;
 
-        int size = pow(2, last.tile);
+        int size = pow(2, last.tile + multiplier);
         int counter;
         
         MapPoint test;
         
         //left side
+        cout << "1" << flush;
         counter = -size;
         while(counter < 2*size){
             test.x = last.x -1;
@@ -250,11 +231,14 @@ bool CalculatePath::Simplify(timestamp_t end_time){
                 best = key_xy;
                 best_tile = closed_set[key_xy].second;
                 updated = 1;
+                multiplier = 0;
             }
-            counter += pow(2, test.tile -2);
+            //counter += pow(2, max(2, test.tile - multiplier));
+            counter += pow(2, max(1, test.tile -1));
         }
 
         //right side
+        cout << "2" << flush;
         counter= -size;
         while(counter < 2*size){
             test.x = last.x + size +1;
@@ -271,11 +255,14 @@ bool CalculatePath::Simplify(timestamp_t end_time){
                 best = key_xy;
                 best_tile = closed_set[key_xy].second;
                 updated = 1;
+                multiplier = 0;
             }
-            counter += pow(2, test.tile -2);
+            //counter += pow(2, max(2, test.tile - multiplier));
+            counter += pow(2, max(1, test.tile -1));
         }
 
         // bottom side
+        cout << "3" << flush;
         counter= -size;
         while(counter < 2*size){
             test.x = last.x + counter;
@@ -292,11 +279,14 @@ bool CalculatePath::Simplify(timestamp_t end_time){
                 best = key_xy;
                 best_tile = closed_set[key_xy].second;
                 updated = 1;
+                multiplier = 0;
             }
-            counter += pow(2, test.tile -2);
+            //counter += pow(2, max(2, test.tile - multiplier));
+            counter += pow(2, max(1, test.tile -1));
         }
 
         //top side
+        cout << "4" << flush;
         counter= -size;
         while(counter < 2*size){
             test.x = last.x + counter;
@@ -313,17 +303,24 @@ bool CalculatePath::Simplify(timestamp_t end_time){
                 best = key_xy;
                 best_tile = closed_set[key_xy].second;
                 updated = 1;
+                multiplier = 0;
             }
-            counter += pow(2, test.tile -2);
+            //counter += pow(2, max(2, test.tile - multiplier));
+            counter += pow(2, max(1, test.tile -1));
         }
 
-        last.x = best.x;
-        last.y = best.y;
-        //last.calculateZ(data.p_mapData);
-        //last.calculateTile(data.p_mapData);
-        last.tile = best_tile;
+        cout << "5" << flush;
+        if(updated){
+            last.x = best.x;
+            last.y = best.y;
+            //last.calculateZ(data.p_mapData);
+            //last.calculateTile(data.p_mapData);
+            last.tile = best_tile;
 
-        path.push_back(best);
+            path.push_back(best);
+        } else {
+            ++multiplier;
+        }
 
     }
 
@@ -372,20 +369,24 @@ void CalculatePath::Display(void* p_map_view){
     }
 
     for(vector<PathKeyXY>::iterator it = path.begin(); it != path.end(); it++){
-        MapPoint point;
-        point.x = it->x;
-        point.y = it->y;
-        point.calculateZ(data.p_mapData);
-        point.calculateTile(data.p_mapData);
+        if(it->x >= 0 and it->y >= 0){
+            MapPoint point;
+            point.x = it->x;
+            point.y = it->y;
+            point.calculateZ(data.p_mapData);
+            point.calculateTile(data.p_mapData);
 
-        Icon icon = ((Map*)p_map_view)->IconSquare(255);
-        icon.pos_x = point.x;
-        icon.pos_y = point.y;
-        icon.scale = pow(2, point.tile);
-        Icon_key key ;
-        key.type = ICON_TYPE_TEST;
-        key.key = ++counter;
-        ((Map*)p_map_view)->AddIcon(key, icon);
+            Icon icon = ((Map*)p_map_view)->IconSquare(255);
+            icon.pos_x = point.x;
+            icon.pos_y = point.y;
+            icon.scale = pow(2, point.tile);
+            if(icon.scale < 1)
+                icon.scale = 1;
+            Icon_key key ;
+            key.type = ICON_TYPE_TEST;
+            key.key = ++counter;
+            ((Map*)p_map_view)->AddIcon(key, icon);
+        }
     }
 }
 

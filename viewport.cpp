@@ -606,6 +606,7 @@ Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, u
         }
         ++i;
     }
+    _icons_mutex.unlock();
     cout << "Viewport::Viewport -\n" << flush;
 }
 
@@ -681,8 +682,16 @@ void Viewport::ActOnSignal(signal sig){
 
 void Viewport::AddIcon(Icon_key key, Icon icon){
     //cout << "Viewport::AddIcon         type: " << key.type << "\tkey: " << key.key << "\tpos_x: " << icon.pos_x << "\tpos_y: " << icon.pos_y << "\n";
-    //_icons.insert(pair<Icon_key,Icon>(key,icon));
+    
+    //std::mutex throwaway;
+    //if(try_lock(_icons_mutex, throwaway) > -1){
+    //    cout << "_icons_mutex\n";
+    //    return;
+    //}
+    _icons_mutex.lock();
     _icons[key] = icon;
+    _icons_mutex.unlock();
+
 }
 
 void Viewport::RedrawIcons(void){
@@ -695,6 +704,7 @@ void Viewport::RedrawIcons(void){
     }
     _data_points_icons.clear();
     _data_colour_icons.clear();
+    _icons_mutex.lock();
     for (std::map<Icon_key,Icon>::iterator it=_icons.begin(); it!=_icons.end(); ++it){
         //cout << it->first.type << " " << it->first.key << "\t" << it->second.pos_x << " , " << it->second.pos_y << "\n";
         scale = it->second.scale;
@@ -710,11 +720,14 @@ void Viewport::RedrawIcons(void){
             _data_colour_icons.push_back(it->second.colour.at(p * 3 +2));
         }
     }
+    _icons_mutex.unlock();
     windows[_window_index].data_icons_mutex.unlock();
 }
 
 void Viewport::ClearIcons(void){
+    _icons_mutex.lock();
     _icons.clear();
+    _icons_mutex.unlock();
 }
 Icon Viewport::TestIcon(void){
     Icon icon;

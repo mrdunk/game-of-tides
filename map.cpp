@@ -614,9 +614,9 @@ void Map::ActOnSignal(signal sig){
                         cout << "Done path.Process\n";
                         path.Simplify(get_timestamp() + 1000*1000*20);
                         cout << "Done path.Simplify\n";
-                        path.Display(this);
-                        cout << "Done path.Display\n";
                     }
+                    path.Display(this);
+                    cout << "Done path.Display\n";
                 }
             }
         }

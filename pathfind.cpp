@@ -59,10 +59,15 @@ CalculatePath::CalculatePath(MapPoint start, MapPoint end, int min_depth){
 }
 
 bool CalculatePath::Process(timestamp_t end_time){
+    timestamp_t t0 = get_timestamp();
+
     int steps = 0;
     while(get_timestamp() < end_time and open_set.size()){
+        // open_set is sorted by distance from destinaton * tilesize so the first element is always the one closest to the destination.
         map<PathKeyXYZ, MapPoint>::iterator it = open_set.begin();
-        
+
+        int speedup = 1;
+                
         int size = pow(2, it->first.recursion);
         int counter = 0;
         MapPoint test;
@@ -79,16 +84,19 @@ bool CalculatePath::Process(timestamp_t end_time){
                 PathKeyXY key_xy;
                 key_xyz.x = key_xy.x = test.x;
                 key_xyz.y = key_xy.y = test.y;
-                key_xyz.recursion = test.tile;
+                key_xyz.recursion = test.tile +speedup;
                 if(open_set.find(key_xyz) == open_set.end() and closed_set.find(key_xy) == closed_set.end()){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
+                    //open_set.clear();
                     cout << "SUCESS\n";
+                    timestamp_t t1 = get_timestamp();
+                    cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
                     return 1;
                 }
             }
-            counter += pow(2, test.tile);
+            counter += pow(2, test.tile +speedup);
         }
 
         //right side
@@ -104,16 +112,19 @@ bool CalculatePath::Process(timestamp_t end_time){
                 PathKeyXY key_xy;
                 key_xyz.x = key_xy.x = test.x;
                 key_xyz.y = key_xy.y = test.y;
-                key_xyz.recursion = test.tile;
+                key_xyz.recursion = test.tile +speedup;
                 if(open_set.find(key_xyz) == open_set.end() and closed_set.find(key_xy) == closed_set.end()){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
+                    //open_set.clear();
                     cout << "SUCESS\n";
+                    timestamp_t t1 = get_timestamp();
+                    cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
                     return 1;
                 }
             }
-            counter += pow(2, test.tile);
+            counter += pow(2, test.tile +speedup);
         }
 
         //bottom side
@@ -129,16 +140,19 @@ bool CalculatePath::Process(timestamp_t end_time){
                 PathKeyXY key_xy;
                 key_xyz.x = key_xy.x = test.x;
                 key_xyz.y = key_xy.y = test.y;
-                key_xyz.recursion = test.tile;
+                key_xyz.recursion = test.tile +speedup;
                 if(open_set.find(key_xyz) == open_set.end() and closed_set.find(key_xy) == closed_set.end()){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
+                    //open_set.clear();
                     cout << "SUCESS\n";
+                    timestamp_t t1 = get_timestamp();
+                    cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
                     return 1;
                 }
             }
-            counter += pow(2, test.tile);
+            counter += pow(2, test.tile +speedup);
         }
 
         //top side
@@ -154,17 +168,20 @@ bool CalculatePath::Process(timestamp_t end_time){
                 PathKeyXY key_xy;
                 key_xyz.x = key_xy.x = test.x;
                 key_xyz.y = key_xy.y = test.y;
-                key_xyz.recursion = test.tile;
+                key_xyz.recursion = test.tile  +speedup;
                 if(open_set.find(key_xyz) == open_set.end() and closed_set.find(key_xy) == closed_set.end()){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
-                    open_set.clear();
+                    //open_set.clear();
                     cout << "SUCESS\n";
+                    timestamp_t t1 = get_timestamp();
+                    cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
+
                     return 1;
                 }
             }
-            counter += pow(2, test.tile);
+            counter += pow(2, test.tile +speedup);
         }
 
 
@@ -184,6 +201,8 @@ bool CalculatePath::Process(timestamp_t end_time){
 
 bool CalculatePath::Simplify(timestamp_t end_time){
     //int lowest = std::numeric_limits<int>::max();
+    timestamp_t t0 = get_timestamp();
+
     path.clear();
 
     //MapPoint point, last;
@@ -201,115 +220,32 @@ bool CalculatePath::Simplify(timestamp_t end_time){
     int best_tile;
     int best_so_far = std::numeric_limits<int>::max();
     bool updated = 1;
-    int multiplier = 0;
 
-    while(get_timestamp() < end_time and closed_set.size() and best_so_far > 1 and multiplier < 4){
-        cout << "\t" << path.size() << "\t" << best_so_far << "\t" << multiplier << "\n";
+    while(get_timestamp() < end_time and closed_set.size() and best_so_far > 1){
+        //cout << "\t" << path.size() << "\t" << best_so_far << "\t";
 
         updated = 0;
 
-        int size = pow(2, last.tile + multiplier);
-        int counter;
-        
-        MapPoint test;
-        
-        //left side
-        cout << "1" << flush;
-        counter = -size;
-        while(counter < 2*size){
-            test.x = last.x -1;
-            test.y = last.y + counter;
-            test.calculateZ(data.p_mapData);
-            test.calculateTile(data.p_mapData);
-            test.limitRecursion(test.tile);
 
-            PathKeyXY key_xy;
-            key_xy.x = test.x;
-            key_xy.y = test.y;
-            if(closed_set.count(key_xy) and closed_set[key_xy].first < best_so_far){
-                best_so_far = closed_set[key_xy].first;
-                best = key_xy;
-                best_tile = closed_set[key_xy].second;
-                updated = 1;
-                multiplier = 0;
+            int rescue_dist = std::numeric_limits<int>::max();
+            int tmp_best_so_far = best_so_far;
+            for(map<PathKeyXY, pair<int,int>>::iterator it = closed_set.begin(); it != closed_set.end(); it++){
+                if(it->second.first < best_so_far){
+                    if(abs((int)it->first.x - (int)last.x) + abs((int)it->first.y - (int)last.y) < rescue_dist){
+                        //cout << ".";
+                        rescue_dist = abs((int)it->first.x - (int)last.x) + abs((int)it->first.y - (int)last.y);
+                        best.x = it->first.x;
+                        best.y = it->first.y;
+                        best_tile = it->second.second;
+                        tmp_best_so_far = it->second.first;
+                        updated = 1;
+                    }
+                }
             }
-            //counter += pow(2, max(2, test.tile - multiplier));
-            counter += pow(2, max(1, test.tile -1));
-        }
+            best_so_far = tmp_best_so_far;
 
-        //right side
-        cout << "2" << flush;
-        counter= -size;
-        while(counter < 2*size){
-            test.x = last.x + size +1;
-            test.y = last.y + counter;
-            test.calculateZ(data.p_mapData);
-            test.calculateTile(data.p_mapData);
-            test.limitRecursion(test.tile);
+        //cout << "\n" << flush;
 
-            PathKeyXY key_xy;
-            key_xy.x = test.x;
-            key_xy.y = test.y;
-            if(closed_set.count(key_xy) and closed_set[key_xy].first < best_so_far){
-                best_so_far = closed_set[key_xy].first;
-                best = key_xy;
-                best_tile = closed_set[key_xy].second;
-                updated = 1;
-                multiplier = 0;
-            }
-            //counter += pow(2, max(2, test.tile - multiplier));
-            counter += pow(2, max(1, test.tile -1));
-        }
-
-        // bottom side
-        cout << "3" << flush;
-        counter= -size;
-        while(counter < 2*size){
-            test.x = last.x + counter;
-            test.y = last.y -1;
-            test.calculateZ(data.p_mapData);
-            test.calculateTile(data.p_mapData);
-            test.limitRecursion(test.tile);
-
-            PathKeyXY key_xy;
-            key_xy.x = test.x;
-            key_xy.y = test.y;
-            if(closed_set.count(key_xy) and closed_set[key_xy].first < best_so_far){
-                best_so_far = closed_set[key_xy].first;
-                best = key_xy;
-                best_tile = closed_set[key_xy].second;
-                updated = 1;
-                multiplier = 0;
-            }
-            //counter += pow(2, max(2, test.tile - multiplier));
-            counter += pow(2, max(1, test.tile -1));
-        }
-
-        //top side
-        cout << "4" << flush;
-        counter= -size;
-        while(counter < 2*size){
-            test.x = last.x + counter;
-            test.y = last.y + size +1;
-            test.calculateZ(data.p_mapData);
-            test.calculateTile(data.p_mapData);
-            test.limitRecursion(test.tile);
-
-            PathKeyXY key_xy;
-            key_xy.x = test.x;
-            key_xy.y = test.y;
-            if(closed_set.count(key_xy) and closed_set[key_xy].first < best_so_far){
-                best_so_far = closed_set[key_xy].first;
-                best = key_xy;
-                best_tile = closed_set[key_xy].second;
-                updated = 1;
-                multiplier = 0;
-            }
-            //counter += pow(2, max(2, test.tile - multiplier));
-            counter += pow(2, max(1, test.tile -1));
-        }
-
-        cout << "5" << flush;
         if(updated){
             last.x = best.x;
             last.y = best.y;
@@ -318,11 +254,12 @@ bool CalculatePath::Simplify(timestamp_t end_time){
             last.tile = best_tile;
 
             path.push_back(best);
-        } else {
-            ++multiplier;
         }
 
     }
+
+    timestamp_t t1 = get_timestamp();
+    cout << "CalculatePath::Simplify took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
 
     return 1;
 }

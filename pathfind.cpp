@@ -9,7 +9,7 @@
 using namespace std;
 
 bool PathKeyXYZ::operator<(const PathKeyXYZ other) const {
-    int recursion_multiplier = 200000;
+    int recursion_multiplier = 100000;
 
     double d_this = sqrt((double)(x - dest_x) * (double)(x - dest_x) + (double)(y - dest_y) * (double)(y - dest_y));
     double d_other = sqrt((double)(other.x - dest_x) * (double)(other.x - dest_x) + (double)(other.y - dest_y) * (double)(other.y - dest_y));
@@ -89,7 +89,9 @@ bool CalculatePath::Process(timestamp_t end_time){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
-                    //open_set.clear();
+#ifndef DEBUG_PATH
+                    open_set.clear();
+#endif
                     cout << "SUCESS\n";
                     timestamp_t t1 = get_timestamp();
                     cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
@@ -117,7 +119,9 @@ bool CalculatePath::Process(timestamp_t end_time){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
-                    //open_set.clear();
+#ifndef DEBUG_PATH
+                    open_set.clear();
+#endif
                     cout << "SUCESS\n";
                     timestamp_t t1 = get_timestamp();
                     cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
@@ -145,7 +149,9 @@ bool CalculatePath::Process(timestamp_t end_time){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
-                    //open_set.clear();
+#ifndef DEBUG_PATH
+                    open_set.clear();
+#endif
                     cout << "SUCESS\n";
                     timestamp_t t1 = get_timestamp();
                     cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
@@ -173,7 +179,9 @@ bool CalculatePath::Process(timestamp_t end_time){
                     open_set[key_xyz] = test;
                 }
                 if(key_xyz.x == key_xyz.dest_x and key_xyz.y == key_xyz.dest_y){
-                    //open_set.clear();
+#ifndef DEBUG_PATH
+                    open_set.clear();
+#endif
                     cout << "SUCESS\n";
                     timestamp_t t1 = get_timestamp();
                     cout << "CalculatePath::Process took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
@@ -223,9 +231,7 @@ bool CalculatePath::Simplify(timestamp_t end_time){
 
     while(get_timestamp() < end_time and closed_set.size() and best_so_far > 1){
         //cout << "\t" << path.size() << "\t" << best_so_far << "\t";
-
         updated = 0;
-
 
             int rescue_dist = std::numeric_limits<int>::max();
             int tmp_best_so_far = best_so_far;
@@ -243,7 +249,6 @@ bool CalculatePath::Simplify(timestamp_t end_time){
                 }
             }
             best_so_far = tmp_best_so_far;
-
         //cout << "\n" << flush;
 
         if(updated){
@@ -259,9 +264,138 @@ bool CalculatePath::Simplify(timestamp_t end_time){
     }
 
     timestamp_t t1 = get_timestamp();
+#ifndef DEBUG_PATH
+    closed_set.clear();
+#endif
     cout << "CalculatePath::Simplify took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
 
     return 1;
+}
+
+std::vector<MapPoint> CalculatePath::passages;
+
+bool CalculatePath::Straighten(timestamp_t end_time){
+    timestamp_t t0 = get_timestamp();
+
+    PathKeyXY a, b;
+    int point_a, point_b, highest_sucess, lowest_fail;
+    point_a = 0;
+    point_b = (int)path.size() -1;
+    lowest_fail = path.size();
+    highest_sucess = 0;
+    while(get_timestamp() < end_time){
+        //cout << point_a << "\t" << point_b << "\t" << highest_sucess << "\t" << lowest_fail << "\t" << path.size() << "\t" << passages.size() << "\n";
+        //cout << point_a << "\t" << point_b << "\t" << path.size() << "\n";
+        a = path[point_a];
+        b = path[point_b];
+        if(b.x >= MAX_SIZE or b.x < 0 or b.y >= MAX_SIZE or b.y < 0){
+            //path.erase(path.begin() + point_b -1);
+        } else {
+            if(CheckLine(a, b)){
+                if(point_b >= (int)path.size() -1){
+                    MapPoint s, e;
+                    b = path.back();
+                    s.x = a.x;
+                    s.y = a.y;
+                    e.x = b.x;
+                    e.y = b.y;
+                    passages.push_back(s);
+                    passages.push_back(e);
+
+                    cout << s.x << "\t,\t" << s.y << "\t\t" << e.x << "\t,\t" << e.y << "\t\t" << path.size() << "\t" << point_b << "\t *\n";
+
+                    cout << "done! " << passages.size() << "\n";
+                    break;
+                }
+                if(point_b > highest_sucess){
+                    highest_sucess = point_b;
+                }
+                if(highest_sucess >= lowest_fail -1){
+                    MapPoint s, e;
+                    s.x = a.x;
+                    s.y = a.y;
+                    e.x = b.x;
+                    e.y = b.y;
+                    passages.push_back(s);
+                    passages.push_back(e);
+
+                    cout << s.x << "\t,\t" << s.y << "\t\t" << e.x << "\t,\t" << e.y << "\n";
+
+                    point_a = point_b;
+                    point_b = path.size();
+                    highest_sucess = point_a;
+                    lowest_fail = path.size();
+                } else {
+                    point_b = (lowest_fail + highest_sucess) / 2;
+                }
+            } else {
+                if(point_b < lowest_fail){
+                    lowest_fail = point_b;
+                }
+                point_b = (lowest_fail + highest_sucess) / 2;
+            }
+            if(point_a == point_b)
+                ++point_b;
+            if(point_b >= (int)path.size())
+                point_b = (int)path.size() -1;
+        }
+    }
+#ifndef DEBUG_PATH
+    path.clear();
+    cout << path.size() << "\n";
+#endif
+    timestamp_t t1 = get_timestamp();
+    cout << "CalculatePath::Straighten took " << (long)(t1 - t0) / 1000000.0L << " seconds.\n";
+    return 0;
+}
+
+bool CalculatePath::CheckLine(PathKeyXY start, PathKeyXY end){
+    MapPoint _start, _end;
+    _start.x = start.x;
+    _start.y = start.y;
+    _end.x = end.x;
+    _end.y = end.y;
+    return CheckLine(_start, _end);
+}
+
+bool CalculatePath::CheckLine(MapPoint start, MapPoint end){
+    //cout << "CalculatePath::CheckLine\n";
+    bool retval = 1;
+
+    double angle = 3.141573 / 2; 
+    if(start.y - end.y != 0){
+        angle = atan((double)((int)start.x - (int)end.x) / ((int)start.y - (int)end.y));
+    }
+    if(start.y > end.y){
+        angle += 3.141573;
+    }
+    
+    MapPoint point = start;
+    point.calculateZ();
+    point.calculateTile();
+    int size = pow(2, point.tile);
+
+    int dist_from_end = (int)sqrt((long)((int)point.x - (int)end.x) * ((int)point.x - (int)end.x) +
+                     (long)((int)point.y - (int)end.y) * ((int)point.y - (int)end.y));
+    int last_dist_from_end = dist_from_end;
+
+    while (dist_from_end >= size and dist_from_end <= last_dist_from_end){
+        point.x += sin(angle) * size;
+        point.y += cos(angle) * size;
+        point.calculateZ();
+        point.calculateTile();
+        size = pow(2, point.tile + CHECKLINE_RESOLUTION);
+        if(size < pow(2, MIN_PATH_RECURSION) or point.x >= (unsigned)MAX_SIZE or point.y >= (unsigned)MAX_SIZE){
+            retval = 0;
+            break;
+        }
+        last_dist_from_end = dist_from_end;
+        dist_from_end = (int)sqrt(((long)point.x - (long)end.x) * ((long)point.x - (long)end.x) +
+                                  ((long)point.y - (long)end.y) * ((long)point.y - (long)end.y));
+    }
+
+    //cout << "CalculatePath::CheckLine -\n";
+    return retval;
 }
 
 void CalculatePath::Display(void* p_map_view){
@@ -323,6 +457,28 @@ void CalculatePath::Display(void* p_map_view){
             key.type = ICON_TYPE_TEST;
             key.key = ++counter;
             ((Map*)p_map_view)->AddIcon(key, icon);
+        }
+    }
+
+    ((Map*)p_map_view)->ClearAllLines();
+    bool odd = 1;
+    for(vector<MapPoint>::iterator it = passages.begin(); it != passages.end(); it++){
+        Line line;
+        if(odd){
+            cout << it->x << "\t,\t" << it->y << "\t\t";
+            line.x0 = it->x;
+            line.y0 = it->y;
+            odd = !odd;
+        } else {
+            cout << it->x << "\t,\t" << it->y << "\n";
+            line.x1 = it->x;
+            line.y1 = it->y;
+            line.r = 255;
+            line.g = 255;
+            line.b = 255;
+            line.thickness = 100;
+            ((Map*)p_map_view)->AddLine(line);
+            odd = !odd;
         }
     }
 }

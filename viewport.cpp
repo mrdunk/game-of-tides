@@ -202,7 +202,9 @@ int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p
     timestamp_t waiting = get_timestamp();
 #endif
 
-    data_mutex->lock();
+    if(data_mutex){
+        data_mutex->lock();
+    }
         
 #ifdef TIMING_DEBUG
     timestamp_t aquired = get_timestamp();
@@ -237,7 +239,9 @@ int LoadVertices(int window_index, std::mutex* data_mutex, std::vector<GLint>* p
     timestamp_t now = get_timestamp();
 #endif
 
-    data_mutex->unlock();
+    if(data_mutex){
+        data_mutex->unlock();
+    }
 
 #ifdef TIMING_DEBUG
     ++count_aquired;
@@ -302,6 +306,54 @@ void Display(void){
     /* Draw Icon buffer. */
     LoadVertices(window_index, &windows[window_index].data_icons_mutex, 
                                windows[window_index]._p_data_points_icons, windows[window_index]._p_data_colour_icons);
+
+    /* Draw lines */
+    std::vector<GLint> _data_lines_points;
+    std::vector<GLubyte> _data_lines_colour;
+    windows[window_index]._p_lines_mutex->lock();
+    for(std::vector<Line>::iterator it = windows[window_index]._p_lines->begin() ; it != windows[window_index]._p_lines->end(); ++it){
+        double angle = 3.141573 / 2;
+        if(it->y0 - it->y1 != 0){
+            angle = atan((double)((int)it->x0 - (int)it->x1) / ((int)it->y0 - (int)it->y1));
+        }
+        float thickness = it->thickness * MAX_SIZE / windows[window_index].zoom / 100000;
+
+        _data_lines_points.push_back(it->x0 - cos(angle) * thickness);
+        _data_lines_points.push_back(it->y0 + sin(angle) * thickness);
+        _data_lines_points.push_back(it->x0 + cos(angle) * thickness);
+        _data_lines_points.push_back(it->y0 - sin(angle) * thickness);
+        _data_lines_points.push_back(it->x1 - cos(angle) * thickness);
+        _data_lines_points.push_back(it->y1 + sin(angle) * thickness);
+        
+        _data_lines_points.push_back(it->x0 + cos(angle) * thickness);
+        _data_lines_points.push_back(it->y0 - sin(angle) * thickness);
+        _data_lines_points.push_back(it->x1 + cos(angle) * thickness);
+        _data_lines_points.push_back(it->y1 - sin(angle) * thickness);
+        _data_lines_points.push_back(it->x1 - cos(angle) * thickness);
+        _data_lines_points.push_back(it->y1 + sin(angle) * thickness);
+
+        _data_lines_colour.push_back(it->r);
+        _data_lines_colour.push_back(it->g);
+        _data_lines_colour.push_back(it->b);
+        _data_lines_colour.push_back(it->r);
+        _data_lines_colour.push_back(it->g);
+        _data_lines_colour.push_back(it->b);
+        _data_lines_colour.push_back(it->r);
+        _data_lines_colour.push_back(it->g);
+        _data_lines_colour.push_back(it->b);
+        _data_lines_colour.push_back(it->r);
+        _data_lines_colour.push_back(it->g);
+        _data_lines_colour.push_back(it->b);
+        _data_lines_colour.push_back(it->r);
+        _data_lines_colour.push_back(it->g);
+        _data_lines_colour.push_back(it->b);
+        _data_lines_colour.push_back(it->r);
+        _data_lines_colour.push_back(it->g);
+        _data_lines_colour.push_back(it->b);
+    }
+    windows[window_index]._p_lines_mutex->unlock();
+
+    LoadVertices(window_index, (std::mutex*)0, &_data_lines_points, &_data_lines_colour);
 
     //glFlush ();
 
@@ -589,6 +641,8 @@ Viewport::Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, u
             windows[i].mouse_x_rel = -1;
             windows[i].mouse_y_rel = -1;
             windows[i].mouse_button = -1;
+            windows[i]._p_lines = &_lines;
+            windows[i]._p_lines_mutex = &_lines_mutex;
             _window_index = i;
             _pos_x = pos_x;
             _pos_y = pos_y;
@@ -815,3 +869,14 @@ void Viewport::AddText(int text_pos_x, int text_pos_y, Text text){
     windows[_window_index].text_list[key] = text;
 }
 
+void Viewport::AddLine(Line line){
+    _icons_mutex.lock();
+    _lines.push_back(line);
+    _icons_mutex.unlock();
+}
+
+void Viewport::ClearAllLines(void){
+    _icons_mutex.lock();
+    _lines.clear();
+    _icons_mutex.unlock();
+}

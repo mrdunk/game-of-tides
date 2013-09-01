@@ -17,9 +17,6 @@ Cockpit::Cockpit(unsigned int label, int pos_x, int pos_y, int width, int height
 
 void Cockpit::Draw(void){
     //cout << "Cockpit::Draw " << _icons.size() << "\n";
-    if(windows[_window_index].mouse_x >= 0 or windows[_window_index].mouse_y >= 0){
-        //cout << windows[_window_index].mouse_x << "," << windows[_window_index].mouse_y << "\n";
-    }
     windows[_window_index].data_size = _data_size = MAX_SIZE;
     _data_points.clear();
     _data_colour.clear();

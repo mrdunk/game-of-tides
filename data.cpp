@@ -118,6 +118,10 @@ int Coordinate::limitRecursion(int recursionTarget, unsigned int* modifiedX, uns
 unsigned int MapPoint::waterlevel = 0;
 unsigned int MapPoint::counter = 0;
 
+void MapPoint::calculateZ(void){
+    calculateZ(&(Data::mapData));
+}
+
 void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
     //cout << "MapPoint::calculateZ + " << x << "," << y << "\n";
 
@@ -224,6 +228,10 @@ void MapPoint::calculateZ(std::unordered_map<std::string, MapPoint>* mapData){
 
     //cout << counter << "\t" << mapData->size() <<"\n";
     //cout << "MapPoint::calculateZ -\n";
+}
+
+int MapPoint::calculateTile(void){
+    return calculateTile(&(Data::mapData));
 }
 
 int MapPoint::calculateTile(std::unordered_map<std::string, MapPoint>* mapData){

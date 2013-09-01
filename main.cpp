@@ -14,11 +14,12 @@
 #include "map.h"
 #include "vessel.h"
 #include "cockpit.h"
+#include "console.h"
 
 
 using namespace std;
 
-void drawMap(int* shutdown, Map* p_testMap){
+void drawMap(int* shutdown, Map* p_testMap, Console* p_console){
     Signal Sig;
     Data data;
 
@@ -34,6 +35,7 @@ void drawMap(int* shutdown, Map* p_testMap){
             }
             end_second += 1000 * 1000;
             //cout << count << " fps drawMap\n";
+            p_console->mapFPS = count;
             count = 0;
         }
         
@@ -49,7 +51,7 @@ void drawMap(int* shutdown, Map* p_testMap){
     cout << "closing drawMap\n";
 }
 
-void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
+void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit, Console* p_console){
     //Signal Sig;
     Fleet vessels;
     Data data;
@@ -65,8 +67,9 @@ void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
                 end_second = get_timestamp() + 1000 * 1000;
             }
             end_second += 1000 * 1000;
-            //cout << "data.mapData.size(): " << data.mapData.size() << "\n";
+            //cout << "data.mapData.size(): " << data.mapData.size() << "\t" << Data::mapData.size() << "\n";
             //cout << count << " fps drawBoats\n";
+            p_console->boatsFPS = count;
             count = 0;
         }
 
@@ -75,6 +78,7 @@ void drawBoats(int* shutdown, Map* p_testMap, Cockpit* p_cockpit){
         p_testMap->DrawBoats();
         p_testMap->DrawText();
         p_cockpit->Draw();
+        p_console->Draw();
 
         //now = get_timestamp();
         //time_left = 100 - ((now - then) / 1000);
@@ -104,6 +108,7 @@ int main(int argc, char** argv)
     Viewport testViewport2(SIG_DEST_TEST, 800, 200, 200, 200);
     Viewport testViewport3(SIG_DEST_TEST, 800, 350, 100, 200);
     Map testMap(SIG_DEST_MAP, 0, 0, 800, 800, LOW_RESOLUTION);
+    Console console(SIG_DEST_TEST, 800, 600, 200, 200);
 
     testMap.Draw();
     //testMap.SetView(0, 0, 40000, 0);
@@ -121,8 +126,8 @@ int main(int argc, char** argv)
     testViewport2.RedrawIcons();
 
 //    thread t3(drawBoats, &shutdown, &testMap, &cockpit);
-    thread t3(drawMap, &shutdown, &testMap);
-    drawBoats(&shutdown, &testMap, &cockpit);
+    thread t3(drawMap, &shutdown, &testMap, &console);
+    drawBoats(&shutdown, &testMap, &cockpit, &console);
 
     //ProfilerStop();
     //HeapProfilerStop();

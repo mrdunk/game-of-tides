@@ -614,8 +614,19 @@ void Map::ActOnSignal(signal sig){
                         cout << "Done path.Process\n";
                         path.Simplify(get_timestamp() + 1000*1000*20);
                         cout << "Done path.Simplify\n";
+                        path.Straighten(get_timestamp() + 1000*1000*20);
+                        cout << "Done path.Straighten\n";
                     }
+                    /*Line test;
+                    test.x0 = point_start.x;
+                    test.y0 = point_start.y;
+                    test.x1 = point_end.x;
+                    test.y1 = point_end.y;
+                    test.thickness = icon.scale;
+                    AddLine(test);*/
+
                     path.Display(this);
+                    //path.CheckLine(point_start, point_end);
                     cout << "Done path.Display\n";
                 }
             }

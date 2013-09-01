@@ -24,6 +24,16 @@ struct Text {
     char text[128];
 };
 
+struct Line {
+    int x0;
+    int y0;
+    int x1;
+    int y1;
+    int thickness;
+    int r;
+    int g;
+    int b;
+};
 
 struct Window{
     int window;                 // Glut window instance.
@@ -64,6 +74,10 @@ struct Window{
 
     /* Contains text string information. */
     std::map<std::pair<int,int>,Text> text_list;
+
+    /* Lines to be drawn over map. */
+    std::vector<Line>* _p_lines;
+    std::mutex* _p_lines_mutex;
 };
 
 extern Window windows[MAX_WINDOWS];
@@ -149,6 +163,9 @@ class Viewport : public Signal{
 
         std::map<Icon_key, Icon> _icons;
         std::mutex _icons_mutex;
+
+        std::vector<Line> _lines;
+        std::mutex _lines_mutex;
     public:
         void RedrawIcons(void);
 
@@ -161,6 +178,9 @@ class Viewport : public Signal{
         void AddIcon(Icon_key key, Icon icon);
 
         void ClearIcons(void);
+
+        void AddLine(Line line);
+        void ClearAllLines(void);
 
         Viewport(unsigned int label, unsigned int pos_x, unsigned int pos_y, unsigned int width, unsigned int height);
         void SetView(int view_x, int view_y, float zoom, int rotation);

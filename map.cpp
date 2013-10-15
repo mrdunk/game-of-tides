@@ -59,16 +59,18 @@ int Map::DrawSection(Task* p_task, int resolution){
     /* Currently viewed bounding box. */
     int screen_x0, screen_y0, screen_x1, screen_y1;
     if(_width > _height){
-        screen_x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-        screen_x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+	screen_x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
+	screen_x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
         screen_y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
         screen_y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
     } else {
         screen_x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
         screen_x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-        screen_y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-        screen_y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+	screen_y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2)) * ((long)_height / (long)_width);
+        screen_y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2)) * ((long)_height / (long)_width);
     }
+
+    //cout << "screen_x0: " << screen_x0 << "\tscreen_x1: " << screen_x1 << "\tscreen_y0: " << screen_y0 << "\tscreen_y1: " << screen_y1 << "\n";
 
     if(p_task->x1 <= screen_x0 or p_task->x0 >= screen_x1 or p_task->y1 <= screen_y0 or p_task->y0 >= screen_y1){
         cout << "No overlap\n";
@@ -105,8 +107,7 @@ int Map::DrawSection(Task* p_task, int resolution){
 int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_progress_x, int* p_progress_y){
 
     //if(resolution==1){
-        //cout << "x0:   " << x0 << "\ty0:   " << y0 << "\tx1:   " << x1 << "\ty1:   " << y1 << "\n";
-        //cout << "s x0: " << screen_x0 << "\ts y0: " << screen_y0 << "\ts x1: " << screen_x1 << "\ts y1: " << screen_y1 << "\n";
+    //    cout << "x0:   " << x0 << "\ty0:   " << y0 << "\tx1:   " << x1 << "\ty1:   " << y1 << "\n";
     //}
 
     /* Must reserve more space in the vertex here because if it re-pages when openGL is reading from it later it causes openGL crash on some platforms. */
@@ -301,8 +302,6 @@ int Map::DrawSection(int x0, int y0, int x1, int y1, int resolution, int* p_prog
 }
 
 inline GLubyte Map::WaterCol(float height, int resolution){
-    //const float z_multiplier_wet = _zoom * 255.0f / (data.Waterlevel() - data.Height_z_min());
-    //return (GLubyte)(255 - (float)(data.Waterlevel() - height) * z_multiplier_wet);
     
     const float z_multiplier_wet = 255.0f / (data.Height_z_max() - data.Height_z_min());
     int rel_height = (float)(height - data.Height_z_min());
@@ -311,23 +310,20 @@ inline GLubyte Map::WaterCol(float height, int resolution){
             return 0;
     }
     return rel_height * z_multiplier_wet;
-
-    //const float z_multiplier_wet = 255.0f / (data.Height_z_max() - data.Height_z_min());
-    //return (GLubyte)(z_multiplier_wet * (height - data.Height_z_min()));
 }
 
 bool Map::ScrubView(void){
     int x0, y0, x1, y1;
     if(_width > _height){
-        x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-        x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+	x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
+        x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
         y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
         y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
     } else {
         x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
         x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-        y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-        y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+        y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2))  * ((long)_height / (long)_width);
+        y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2))  * ((long)_height / (long)_width);
     }
     return ScrubView(x0, y0, x1, y1);
 }
@@ -511,15 +507,15 @@ void Map::ActOnSignal(signal sig){
 
             /* Different aspects depending on whether map is portrait or landscape. */
             if(_width > _height){
-                task.x0 = store_view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
-                task.x1 = store_view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+		task.x0 = store_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
+                task.x1 = store_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
                 task.y0 = store_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
                 task.y1 = store_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
             } else {
                 task.x0 = store_view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
                 task.x1 = store_view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
-                task.y0 = store_view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
-                task.y1 = store_view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+		task.y0 = store_view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2)) * ((long)_height / (long)_width);
+		task.y1 = store_view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2)) * ((long)_height / (long)_width);
             }
             task.view_x = _view_x;
             task.view_y = _view_y;
@@ -533,14 +529,14 @@ void Map::ActOnSignal(signal sig){
             if(store_view_x < _view_x){
                 task.x0 = task.x1 - pix_size;
                 if(_width > _height){
-                    task.x1 = _view_x + (MAX_SIZE / 2) + (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+		    task.x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
                 } else {
                     task.x1 = _view_x + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
                 }
             } else if(store_view_x > _view_x){
                 task.x1 = task.x0 + pix_size;
                 if(_width > _height){
-                    task.x0 = _view_x + (MAX_SIZE / 2) - (((long)_width * MAX_SIZE / (_zoom * 2 * _height)));
+                    task.x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2)) * ((long)_width / (long)_height);
                 } else {
                     task.x0 = _view_x + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
                 }
@@ -549,14 +545,14 @@ void Map::ActOnSignal(signal sig){
                 if(_width > _height){
                     task.y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2));
                 } else {
-                    task.y1 = _view_y + (MAX_SIZE / 2) + (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+                    task.y1 = _view_y + (MAX_SIZE / 2) + (MAX_SIZE / (_zoom *2)) * ((long)_height / (long)_width);
                 }
             } else if(store_view_y > _view_y){
                 task.y1 = task.y0 + pix_size;
                 if(_width > _height){
                     task.y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2));
                 } else {
-                    task.y0 = _view_y + (MAX_SIZE / 2) - (((long)_height * MAX_SIZE / (_zoom * 2 * _width)));
+                    task.y0 = _view_y + (MAX_SIZE / 2) - (MAX_SIZE / (_zoom *2)) * ((long)_height / (long)_width);
                 }
             }
 
@@ -668,6 +664,7 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
             if(!it->progress_x and !it->progress_y){
                 Clear();            // only do this if we are not continuing a previously started DrawSection().
             }
+	    cout << "TASK_TYPE_ZOOM\n";
             interupt_val = DrawSection(&(*it), resolution);
             // "< SIG_VAL_UP" covers zoom interrupt and no interrupt.
             if(interupt_val < SIG_VAL_UP){
@@ -676,6 +673,7 @@ bool Map::ProcessTasks(std::vector<Task>* p_task_list){
             }
         } else if(it->type == TASK_TYPE_PAN){
             //ScrubView();
+	    cout << "TASK_TYPE_PAN\n";
             interupt_val = DrawSection(&(*it), resolution);
             if(interupt_val == 0){
                 // set type to 0 so the task gets removed from task_list.
